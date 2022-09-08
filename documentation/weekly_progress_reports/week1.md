@@ -25,4 +25,4 @@ I am a returning student, so there has been some overhead to re-familiarize myse
 | Day      | Hours worked | Description |
 |----------|--------------|-------------|
 | WED 7.9. | 2            | Opening Lecture |
-| THU 8.9. | 4            | Topic selection & background research, project |setup, documentation |
+| THU 8.9. | 5            | Topic selection & background research, project |setup, documentation |
