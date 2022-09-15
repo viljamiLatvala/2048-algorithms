@@ -11,3 +11,8 @@
 ## What will be done next?
 
 ## Other feedback or questions to the course instructor
+
+## Hours worked
+| Day      | Hours worked | Description |
+|----------|--------------|-------------|
+| THU 15.9. | 2           | Setting up unit testing, coverage reporting and linting |

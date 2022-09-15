@@ -1,5 +1,11 @@
 {
     "python.analysis.extraPaths": [
         "./2048-algorithms"
+    ],
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.linting.pycodestyleEnabled": true,
+    "python.autoComplete.extraPaths": [
+        "./2048-algorithms"
     ]
 }
