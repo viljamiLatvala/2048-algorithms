@@ -15,4 +15,5 @@
 ## Hours worked
 | Day      | Hours worked | Description |
 |----------|--------------|-------------|
-| THU 15.9. | 2           | Setting up unit testing, coverage reporting and linting |
+| THU 15.9.| 2           | Setting up unit testing, coverage reporting and linting |
+| THU 15.9.| 2           | Application structuring, ManualInputPlayer for manual testing |
