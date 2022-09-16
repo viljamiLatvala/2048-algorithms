@@ -26,6 +26,12 @@ class BrowserGame:
         self.driver.find_element(By.ID, "ez-accept-all").click()
         self.game = self.driver.find_element(By.TAG_NAME, "body")
 
+    def quit_game(self):
+        self.driver.close()
+        self.driver = webdriver.Chrome(
+            service=ChromeService(ChromeDriverManager().install())
+        )
+
     def move_up(self):
         self.game.send_keys(Keys.ARROW_UP)
         time.sleep(0.2)
