@@ -1,13 +1,13 @@
 # Weekly progress report - Week 2
 
 ## What has been done this week?
-- Configured coverage.py for following up on test coverage
+- Configured coverage.py for following up on test coverage ([report](https://viljamilatvala.github.io/2048-algorithms/documentation/coverage_report/index.html))
 - Configured pylint as linter
 - GameHandler now has a function to recognize game over states
 - Created first unit tests for GameHandler
 - Created UserInputPlayer -class, which plays the game on users input. AI -player will be implemented using the implicit Player -interface.
 - Built a simple CLI for the main app, architecture of the project is now working and utilized in app.py
-- Documented some of the project with docstrings
+- Documented some of the project with docstrings. Html documentation viewable by 
 
 ## How has the program progressed?
 I consider to have progressed fairly well on the project. The main surroundings for the AI algorithm are pretty much done aside from logging. The quantity of tests or test coverage is still very small and is to be improved. However in the first weeks effort has gone towards outer layers of the application (CLI, controlling the game via browser) where the need for high unit test coverage may not apply as directly as with the algorithm itself.
@@ -28,4 +28,5 @@ Are the "outer parts" like CLI and controlling the game via browser expected to 
 | Day      | Hours worked | Description |
 |----------|--------------|-------------|
 | THU 15.9.| 2           | Setting up unit testing, coverage reporting and linting |
-| THU 15.9.| 7           | Application structuring, ManualInputPlayer for manual testing, CLI for running the program, recognizing game over state, started logging |
+| FRI 16.9.| 7           | Application structuring, ManualInputPlayer for manual testing, CLI for running the program, recognizing game over state, started logging |
+| SAT 17.9.| 1           | Set-up github-page for coverage report |
