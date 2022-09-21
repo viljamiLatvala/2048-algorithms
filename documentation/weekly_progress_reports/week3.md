@@ -11,3 +11,8 @@
 ## What will be done next?
 
 ## Other feedback or questions to the course instructor
+
+## Hours worked
+| Day      | Hours worked | Description |
+|----------|--------------|-------------|
+|WED 21.9. | 2            | Started creating child state generation methods for MinMaxPlayer |
