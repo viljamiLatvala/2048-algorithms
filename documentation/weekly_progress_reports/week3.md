@@ -15,4 +15,5 @@
 ## Hours worked
 | Day      | Hours worked | Description |
 |----------|--------------|-------------|
-|WED 21.9. | 2            | Started creating child state generation methods for MinMaxPlayer |
+|WED 21.9. | 5            | Started creating MinMax -algorithm: Child state generation methods for MinMaxPlayer, heuristic function for evaluating states |
+|THU 22.9. |              | TODO: Better test coverage generation, documentation
