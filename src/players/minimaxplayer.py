@@ -3,7 +3,7 @@ from typing import List
 from gamehandler.gamehandler import GameHandler
 
 HUGE_NUMBER = 999999999
-SEARCH_DEPTH = 4
+SEARCH_DEPTH = 8
 
 gamehandler = GameHandler()
 
@@ -31,14 +31,24 @@ class MiniMaxPlayer:
         """
 
         if not is_player_turn:
+            for child in self.generate_spawn_tile(state):
+                print(f"\t\t\tGenerated computer move: {child}")
             return self.generate_spawn_tile(state)
 
-        return [
-            [*self.generate_direction(state, "up")],
-            [*self.generate_direction(state, "down")],
-            [*self.generate_direction(state, "left")],
-            [*self.generate_direction(state, "right")],
+        player_moves = [
+            {"direction": "up", "state": [*self.generate_direction(state, "up")]},
+            {"direction": "down", "state": [*self.generate_direction(state, "down")]},
+            {"direction": "left", "state": [*self.generate_direction(state, "left")]},
+            {"direction": "right", "state": [*self.generate_direction(state, "right")]},
         ]
+
+        allowed_moves = []
+        for move in player_moves:
+            if move["state"] != state:
+                allowed_moves.append(move["state"])
+                print(f"\t\t\tGenerated player move: {move['state']} - direction {move['direction']}")
+
+        return allowed_moves
 
     def generate_spawn_tile(self, state: List[List[int]]) -> List[List[List[int]]]:
         """Generates list of child states on computers turn
@@ -171,17 +181,22 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
+        print(f"Maximizer - Depth {depth}")
+        print(f"\tmaximizer state: {state}")
         if gamehandler.game_is_over(state):
-            return gamehandler.get_grid_max_value(state)
+            return self.heuristic(state)
         if depth > SEARCH_DEPTH:
+            print("\tmaximizer: SEARCH DEPTH REACHED")
             return self.heuristic(state)
         v = -HUGE_NUMBER
         for child in self.generate_children(state, True):
-            v = max(v, self.minimize(child, depth))
+            print(f"\tmaximizer: generated child {child}")
+            v = max(v, self.minimize(child, depth + 1))
+        print(f"\tReturning from maximizer: {v}")
         return v
 
     def minimize(self, state: List[List[int]], depth: int):
-        """Minimizer functionf or the minmax -algorithm
+        """Minimizer function for the minmax -algorithm
 
         Args:
             state (List[List[int]]): Game state to minimize
@@ -190,11 +205,17 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
+        # print(f"Minimizer - Depth {depth}")
+        # print(f"\tminimizer state: {state}")
         if gamehandler.game_is_over(state):
-            return gamehandler.get_grid_max_value(state)
+            return self.heuristic(state)
         if depth > SEARCH_DEPTH:
+            # print("\tminimizer: SEARCH DEPTH REACHED")
             return self.heuristic(state)
         v = HUGE_NUMBER
         for child in self.generate_children(state, False):
-            v = max(v, self.maximize(child, depth + 1))
+            # print(f"\tminimizer: generated child {child}")
+            v = min(v, self.maximize(child, depth + 1))
+
+        # print(f"\tReturning from minimizer: {v}")
         return v

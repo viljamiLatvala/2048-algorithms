@@ -29,11 +29,11 @@ class GameHandler:
         Returns:
             bool: True if game is over, otherwise false
         """
-
         for i in range(len(grid)):
             for j in range(len(grid[i])):
                 # Check if there is no tile in grid slot
                 if grid[i][j] == 0:
+                    # print("\t\tgame_is_over: false")
                     return False
 
                 # Check if there are available merges
@@ -56,8 +56,9 @@ class GameHandler:
                     neighbors.append(below)
 
                 if grid[i][j] in neighbors:
+                    print("\t\tgame_is_over: false")
                     return False
-
+        print("\t\tgame_is_over: true")
         return True
 
     def get_tiles(self, grid: List[List[int]]) -> List[str]:

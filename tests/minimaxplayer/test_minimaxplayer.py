@@ -82,6 +82,24 @@ class TestMiniMaxPlayer(unittest.TestCase):
         grid = [[2, 2, 4], [0, 0, 2]]
         self.assertEqual(player.heuristic(grid), 10 / 4)
 
+    def test_minimize_reach_endstate(self):
+        player = MiniMaxPlayer()
+        grid = [[1, 0], [3, 4]]
+        print(player.minimize(grid, 2.5))
+
+    def test_minimize_maxdepth(self):
+        pass
+
+    def test_maximize_reach_endstate(self):
+        player = MiniMaxPlayer()
+        grid = [[1, 10], [5, 5]]
+        print(player.maximize(grid, 6.75))
+
+    def test_maximize_maxdepth(self):
+        pass
+
 
 if __name__ == "__main__":
-    unittest.main()
+    # unittest.main()
+    ut = TestMiniMaxPlayer()
+    ut.test_minimize_reach_endstate()
