@@ -14,9 +14,7 @@ class BrowserGame:
 
     def __init__(self):
         self.url = "https://play2048.co/"
-        self.driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install())
-        )
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
         self.game = None
 
     def start_game(self):
@@ -27,24 +25,27 @@ class BrowserGame:
         self.game = self.driver.find_element(By.TAG_NAME, "body")
 
     def quit_game(self):
+        """Closes the controlled web browser and reassigns a new webdriver to be ready for possible new games"""
         self.driver.close()
-        self.driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install())
-        )
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
     def move_up(self):
+        """Commands the game to move up"""
         self.game.send_keys(Keys.ARROW_UP)
         time.sleep(0.2)
 
     def move_down(self):
+        """Commands the game to move down"""
         self.game.send_keys(Keys.ARROW_DOWN)
         time.sleep(0.2)
 
     def move_left(self):
+        """Commands the game to move left"""
         self.game.send_keys(Keys.ARROW_LEFT)
         time.sleep(0.2)
 
     def move_right(self):
+        """Commands the game to move right"""
         self.game.send_keys(Keys.ARROW_RIGHT)
         time.sleep(0.2)
 

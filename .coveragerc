@@ -1,0 +1,9 @@
+# .coveragerc to control coverage.py
+[run]
+omit = 
+    */__init__.py
+    */test_[a-zA-Z0-9_]*.py
+
+
+[html]
+directory = documentation/coverage_report

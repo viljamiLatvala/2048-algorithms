@@ -4,11 +4,10 @@ import sys
 
 PROJECT_SRC = str(pathlib.Path(__file__).parent.parent.parent / "src")
 sys.path.append(PROJECT_SRC)
-
 from gamehandler.gamehandler import GameHandler
 
 
-class TestGetMaxGridValue(unittest.TestCase):
+class TestGameHandler(unittest.TestCase):
     def test_simple_highest_value(self):
         game_handler = GameHandler()
         grid = [[0, 0, 0, 0], [0, 0, 2048, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
@@ -19,8 +18,6 @@ class TestGetMaxGridValue(unittest.TestCase):
         grid = [[31, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 32, 32, 32]]
         self.assertEqual(game_handler.get_grid_max_value(grid), 32)
 
-
-class TestGameIsOver(unittest.TestCase):
     def test_zeroes_present_in_grid(self):
         game_handler = GameHandler()
         grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]

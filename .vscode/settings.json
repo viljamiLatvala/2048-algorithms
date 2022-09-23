@@ -1,8 +1,6 @@
 {
     "python.analysis.extraPaths": [
         "./2048-algorithms",
-        "./src",
-        "./src",
         "./src"
     ],
     "python.linting.pylintEnabled": true,
