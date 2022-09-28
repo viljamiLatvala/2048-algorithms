@@ -5,6 +5,7 @@ import csv
 from browsergame.browsergame import BrowserGame
 from gamehandler.gamehandler import GameHandler
 from players.userinputplayer import UserInputPlayer
+from players.minimaxplayer import MiniMaxPlayer
 
 
 def clear():
@@ -32,7 +33,7 @@ def player_selection() -> object:
     Returns:
         object: Player -class representing the selected player
     """
-    players = [UserInputPlayer]
+    players = [UserInputPlayer, MiniMaxPlayer]
     print("\nSelect who plays the game(s)")
     print("\t[1] - UserInputPlayer (You choose the moves)")
     print("\t[2] - MinMaxAiPlayer [TODO]")
@@ -103,6 +104,7 @@ if __name__ == "__main__":
                 game.move_right()
 
             turn_count += 1
+            clear()
 
             game_state = game.read_grid()
             gridmax = game_handler.get_grid_max_value(game_state)

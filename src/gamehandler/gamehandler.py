@@ -56,9 +56,9 @@ class GameHandler:
                     neighbors.append(below)
 
                 if grid[i][j] in neighbors:
-                    print("\t\tgame_is_over: false")
+                    # print("\t\tgame_is_over: false")
                     return False
-        print("\t\tgame_is_over: true")
+        # print("\t\tgame_is_over: true")
         return True
 
     def get_tiles(self, grid: List[List[int]]) -> List[str]:

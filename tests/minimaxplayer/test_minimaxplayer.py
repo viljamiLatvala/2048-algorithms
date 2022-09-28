@@ -85,7 +85,8 @@ class TestMiniMaxPlayer(unittest.TestCase):
     def test_minimize_reach_endstate(self):
         player = MiniMaxPlayer()
         grid = [[1, 0], [3, 4]]
-        print(player.minimize(grid, 2.5))
+        print(player.minimize(grid, 0))
+        #2.5
 
     def test_minimize_maxdepth(self):
         pass
@@ -93,13 +94,19 @@ class TestMiniMaxPlayer(unittest.TestCase):
     def test_maximize_reach_endstate(self):
         player = MiniMaxPlayer()
         grid = [[1, 10], [5, 5]]
-        print(player.maximize(grid, 6.75))
+        print(player.maximize(grid, 0))
+        #6.75
 
     def test_maximize_maxdepth(self):
         pass
+
+    def test_play_round(self):
+        player = MiniMaxPlayer()
+        grid = [[1, 10], [5, 5]]
+        print(player.play_round(grid))
 
 
 if __name__ == "__main__":
     # unittest.main()
     ut = TestMiniMaxPlayer()
-    ut.test_minimize_reach_endstate()
+    ut.test_play_round()
