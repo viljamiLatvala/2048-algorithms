@@ -113,5 +113,8 @@ if __name__ == "__main__":
 
         game.quit_game()
         print(f"Game {game_no + 1}/{games_to_play} over! Score: {max_score}, played_turns: {turn_count}")
-
+        print(f"Visited states: {player.visited_states}")
+        print(f"Counted duplicate states: {player.recognized_dup_states}")
+        print(f"Counted prunes: {player.counted_prunes}")
+        print(f"Elapsed times: {player.elapsed_times}")
     logfile.close()

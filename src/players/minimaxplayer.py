@@ -1,42 +1,21 @@
 import copy
 from typing import List
 from gamehandler.gamehandler import GameHandler
+import time
 
 HUGE_NUMBER = 999999999
 # SEARCH_DEPTH = 6
-SEARCH_DEPTH = 6
+SEARCH_DEPTH = 5
 
 gamehandler = GameHandler()
 
 
 class MiniMaxPlayer:
-    def generate_children(self, state: List[List[int]], is_player_turn: bool) -> List[List[List[int]]]:
-        """Generates list of possible next states of the game given a state
-
-        Args:
-            state (List[List[int]]): Game state to generate child states to
-            is_player_turn (bool): Indicates if it is the player or the games turn to play
-
-        Returns:
-            List[List[List[int]]]: List of possible child states
-        """
-
-        if not is_player_turn:
-            return self.generate_spawn_tile(state)
-
-        player_moves = [
-            {"direction": "up", "state": [*self.generate_direction(state, "up")]},
-            {"direction": "down", "state": [*self.generate_direction(state, "down")]},
-            {"direction": "left", "state": [*self.generate_direction(state, "left")]},
-            {"direction": "right", "state": [*self.generate_direction(state, "right")]},
-        ]
-
-        allowed_moves = []
-        for move in player_moves:
-            if move["state"] != state:
-                allowed_moves.append(move["state"])
-
-        return allowed_moves
+    def __init__(self):
+        self.visited_states = 0
+        self.counted_prunes = 0
+        self.recognized_dup_states = 0
+        self.elapsed_times = {"generate_spawn_tile": 0, "generate_direction": 0, "maximize": 0, "minimize": 0}
 
     def generate_spawn_tile(self, state: List[List[int]]) -> List[List[List[int]]]:
         """Generates list of child states on computers turn
@@ -47,6 +26,7 @@ class MiniMaxPlayer:
         Returns:
             List[List[List[int]]]: List of possible child states
         """
+        starttime = time.perf_counter()
         children = []
         for x, row in enumerate(state):
             for y, col in enumerate(row):
@@ -58,6 +38,8 @@ class MiniMaxPlayer:
                     new_child = copy.deepcopy(state)
                     new_child[x][y] = 4
                     children.append(new_child)
+        endtime = time.perf_counter()
+        self.elapsed_times["generate_spawn_tile"] += endtime - starttime
         return children
 
     def generate_direction(self, state: List[List[int]], direction: str) -> List[List[int]]:
@@ -70,6 +52,8 @@ class MiniMaxPlayer:
         Returns:
             List[List[int]]: Game state after moving the tiles to given direction
         """
+        starttime = time.perf_counter()
+
         new_state = []
         rotated_grid = self.rotate_grid(state, direction)
         for row in rotated_grid:
@@ -100,6 +84,8 @@ class MiniMaxPlayer:
 
             new_state.append(merged_tiles)
 
+        endtime = time.perf_counter()
+        self.elapsed_times["generate_direction"] += endtime - starttime
         return self.rotate_grid(new_state, direction)
 
     def rotate_grid(self, state: List[List[int]], direction: str) -> List[List[int]]:
@@ -123,7 +109,7 @@ class MiniMaxPlayer:
 
             for i, row in enumerate(state):
                 newrow = []
-                for j, col in enumerate(row):
+                for j in range(len(row)):
                     newrow.append(state[j][i])
                 rotated_state.append(newrow)
 
@@ -134,7 +120,7 @@ class MiniMaxPlayer:
 
             for i, row in enumerate(state):
                 newrow = []
-                for j, col in enumerate(row):
+                for j in range(len(row)):
                     newrow.insert(0, state[j][i])
                 rotated_state.insert(0, newrow)
 
@@ -170,23 +156,26 @@ class MiniMaxPlayer:
         """
         play_directions = ["up", "down", "left", "right"]
         lastchild = None
+        lastchildname = None
         v = -HUGE_NUMBER
-        winning_direction = "Up"
+        winning_direction = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
 
-            if direction == "down":
-                if lastchild == child[::-1]:
-                    continue
-
-            if direction == "right":
-                if lastchild == self.rotate_grid(child, "right"):
-                    continue
-
-            lastchild = child
-
             if child == state:
                 continue
+
+            if direction == "down" and lastchild == child[::-1]:
+                self.recognized_dup_states += 1
+                continue
+
+            if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
+                self.recognized_dup_states += 1
+                continue
+
+            lastchild = child
+            lastchildname = direction
+
             candidate_v = self.minimize(child, 1, -HUGE_NUMBER, HUGE_NUMBER)
             if candidate_v > v:
                 v = candidate_v
@@ -204,34 +193,46 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
+        starttime = time.perf_counter()
+        self.visited_states += 1
         if gamehandler.game_is_over(state):
+            endtime = time.perf_counter()
+            self.elapsed_times["maximize"] += endtime - starttime
             return self.heuristic(state)
         if depth > SEARCH_DEPTH:
+            endtime = time.perf_counter()
+            self.elapsed_times["maximize"] += endtime - starttime
             return self.heuristic(state)
         v = -HUGE_NUMBER
         play_directions = ["up", "down", "left", "right"]
         lastchild = None
+        lastchildname = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
-
-            if direction == "down":
-                if lastchild == child[::-1]:
-                    continue
-
-            if direction == "right":
-                if lastchild == self.rotate_grid(child, "right"):
-                    continue
-
-            lastchild = child
 
             if child == state:
                 continue
 
+            if direction == "down" and lastchild == child[::-1]:
+                self.recognized_dup_states += 1
+                continue
+
+            if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
+                self.recognized_dup_states += 1
+                continue
+
+            lastchild = child
+            lastchildname = direction
+
             v = max(v, self.minimize(child, depth + 1, alpha, beta))
             alpha = max(alpha, v)
             if alpha >= beta:
+                self.counted_prunes += 1
+                endtime = time.perf_counter()
+                self.elapsed_times["maximize"] += endtime - starttime
                 return v
-
+        endtime = time.perf_counter()
+        self.elapsed_times["maximize"] += endtime - starttime
         return v
 
     def minimize(self, state: List[List[int]], depth: int, alpha, beta):
@@ -244,20 +245,33 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
+        starttime = time.perf_counter()
+        self.visited_states += 1
         if gamehandler.game_is_over(state):
+            endtime = time.perf_counter()
+            self.elapsed_times["minimize"] += endtime - starttime
             return self.heuristic(state)
         if depth > SEARCH_DEPTH:
+            endtime = time.perf_counter()
+            self.elapsed_times["minimize"] += endtime - starttime
             return self.heuristic(state)
         v = HUGE_NUMBER
-        children = self.generate_children(state, False)
+        children = self.generate_spawn_tile(state)
         for child in children:
             v = min(v, self.maximize(child, depth + 1, alpha, beta))
             beta = min(beta, v)
             if alpha >= beta:
+                endtime = time.perf_counter()
+                self.elapsed_times["minimize"] += endtime - starttime
                 return v
         if len(children) == 0:
             v = min(v, self.maximize(state, depth + 1, alpha, beta))
             beta = min(beta, v)
             if alpha >= beta:
+                self.counted_prunes += 1
+                endtime = time.perf_counter()
+                self.elapsed_times["minimize"] += endtime - starttime
                 return v
+        endtime = time.perf_counter()
+        self.elapsed_times["minimize"] += endtime - starttime
         return v
