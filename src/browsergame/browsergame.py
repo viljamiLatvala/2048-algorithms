@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
-
+# <a class="keep-playing-button">Keep going</a>
 class BrowserGame:
     """
     A class for representing the browser version of the game 2048,

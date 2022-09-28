@@ -48,6 +48,18 @@ class TestMiniMaxPlayer(unittest.TestCase):
         grid = [[2, 2, 8], [2, 4, 0], [2, 8, 8]]
         self.assertEqual(player.rotate_grid(grid, "down"), [[8, 0, 8], [8, 4, 2], [2, 2, 2]])
 
+    def test_grid_similarity(self):
+        player = MiniMaxPlayer()
+        grid = [[0, 2, 0], [2, 0, 0], [0, 0, 0]]
+        self.assertEqual(
+            player.generate_direction(grid, "up"),
+            player.generate_direction(grid, "down")[::-1],
+        )
+        self.assertEqual(
+            player.generate_direction(grid, "left"),
+            player.rotate_grid(player.generate_direction(grid, "right"), "right"),
+        )
+
     def test_generate_direction_left(self):
         player = MiniMaxPlayer()
         grid = [[2, 2, 8], [2, 4, 0], [2, 8, 8]]
@@ -86,7 +98,7 @@ class TestMiniMaxPlayer(unittest.TestCase):
         player = MiniMaxPlayer()
         grid = [[1, 0], [3, 4]]
         print(player.minimize(grid, 0))
-        #2.5
+        # 2.5
 
     def test_minimize_maxdepth(self):
         pass
@@ -95,7 +107,7 @@ class TestMiniMaxPlayer(unittest.TestCase):
         player = MiniMaxPlayer()
         grid = [[1, 10], [5, 5]]
         print(player.maximize(grid, 0))
-        #6.75
+        # 6.75
 
     def test_maximize_maxdepth(self):
         pass
@@ -109,4 +121,4 @@ class TestMiniMaxPlayer(unittest.TestCase):
 if __name__ == "__main__":
     # unittest.main()
     ut = TestMiniMaxPlayer()
-    ut.test_play_round()
+    ut.test_grid_similarity()

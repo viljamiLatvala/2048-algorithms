@@ -3,22 +3,13 @@ from typing import List
 from gamehandler.gamehandler import GameHandler
 
 HUGE_NUMBER = 999999999
-SEARCH_DEPTH = 5
+# SEARCH_DEPTH = 6
+SEARCH_DEPTH = 6
 
 gamehandler = GameHandler()
 
 
 class MiniMaxPlayer:
-    def play_round(self, grid: List[List[int]]) -> str:
-        """Calculates the next move for given games state
-
-        Args:
-            grid (List[List[int]]): State of the game grid
-
-        Returns:
-            str: Direction to play ("left", "right", "up", "down")
-        """
-
     def generate_children(self, state: List[List[int]], is_player_turn: bool) -> List[List[List[int]]]:
         """Generates list of possible next states of the game given a state
 
@@ -31,8 +22,6 @@ class MiniMaxPlayer:
         """
 
         if not is_player_turn:
-            # for child in self.generate_spawn_tile(state):
-            # print(f"\t\t\tGenerated computer move: {child}")
             return self.generate_spawn_tile(state)
 
         player_moves = [
@@ -46,7 +35,6 @@ class MiniMaxPlayer:
         for move in player_moves:
             if move["state"] != state:
                 allowed_moves.append(move["state"])
-                # print(f"\t\t\tGenerated player move: {move['state']} - direction {move['direction']}")
 
         return allowed_moves
 
@@ -172,22 +160,41 @@ class MiniMaxPlayer:
         return tile_sum / tiles
 
     def play_round(self, state: List[List[int]]):
-        play_directions = ["left", "up", "down", "right"]
+        """Calculates the next move for given games state
+
+        Args:
+            grid (List[List[int]]): State of the game grid
+
+        Returns:
+            str: Direction to play ("left", "right", "up", "down")
+        """
+        play_directions = ["up", "down", "left", "right"]
+        lastchild = None
         v = -HUGE_NUMBER
-        winning_direction = None
+        winning_direction = "Up"
         for direction in play_directions:
             child = self.generate_direction(state, direction)
+
+            if direction == "down":
+                if lastchild == child[::-1]:
+                    continue
+
+            if direction == "right":
+                if lastchild == self.rotate_grid(child, "right"):
+                    continue
+
+            lastchild = child
+
             if child == state:
                 continue
-            candidate_v = self.minimize(child, 1)
-            # print(f"candidate_v: {candidate_v}")
+            candidate_v = self.minimize(child, 1, -HUGE_NUMBER, HUGE_NUMBER)
             if candidate_v > v:
-                # print("True, reassigning")
                 v = candidate_v
                 winning_direction = direction
+
         return winning_direction.capitalize()
 
-    def maximize(self, state: List[List[int]], depth: int):
+    def maximize(self, state: List[List[int]], depth: int, alpha, beta):
         """Maximizer function for the minmax -algorithm
 
         Args:
@@ -197,21 +204,37 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-        # print(f"Maximizer - Depth {depth}")
-        # print(f"\tmaximizer state: {state}")
         if gamehandler.game_is_over(state):
             return self.heuristic(state)
         if depth > SEARCH_DEPTH:
-            # print("\tmaximizer: SEARCH DEPTH REACHED")
             return self.heuristic(state)
         v = -HUGE_NUMBER
-        for child in self.generate_children(state, True):
-            # print(f"\tmaximizer: generated child {child}")
-            v = max(v, self.minimize(child, depth + 1))
-        # print(f"\tReturning from maximizer: {v}")
+        play_directions = ["up", "down", "left", "right"]
+        lastchild = None
+        for direction in play_directions:
+            child = self.generate_direction(state, direction)
+
+            if direction == "down":
+                if lastchild == child[::-1]:
+                    continue
+
+            if direction == "right":
+                if lastchild == self.rotate_grid(child, "right"):
+                    continue
+
+            lastchild = child
+
+            if child == state:
+                continue
+
+            v = max(v, self.minimize(child, depth + 1, alpha, beta))
+            alpha = max(alpha, v)
+            if alpha >= beta:
+                return v
+
         return v
 
-    def minimize(self, state: List[List[int]], depth: int):
+    def minimize(self, state: List[List[int]], depth: int, alpha, beta):
         """Minimizer function for the minmax -algorithm
 
         Args:
@@ -221,20 +244,20 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-        # print(f"Minimizer - Depth {depth}")
-        # print(f"\tminimizer state: {state}")
         if gamehandler.game_is_over(state):
             return self.heuristic(state)
         if depth > SEARCH_DEPTH:
-            # print("\tminimizer: SEARCH DEPTH REACHED")
             return self.heuristic(state)
         v = HUGE_NUMBER
         children = self.generate_children(state, False)
         for child in children:
-            # print(f"\tminimizer: generated child {child}")
-            v = min(v, self.maximize(child, depth + 1))
+            v = min(v, self.maximize(child, depth + 1, alpha, beta))
+            beta = min(beta, v)
+            if alpha >= beta:
+                return v
         if len(children) == 0:
-            v = min(v, self.maximize(state, depth + 1))
-
-        # print(f"\tReturning from minimizer: {v}")
+            v = min(v, self.maximize(state, depth + 1, alpha, beta))
+            beta = min(beta, v)
+            if alpha >= beta:
+                return v
         return v
