@@ -5,7 +5,7 @@ import time
 
 HUGE_NUMBER = 999999999
 # SEARCH_DEPTH = 6
-SEARCH_DEPTH = 5
+SEARCH_DEPTH = 6
 
 gamehandler = GameHandler()
 
@@ -16,6 +16,19 @@ class MiniMaxPlayer:
         self.counted_prunes = 0
         self.recognized_dup_states = 0
         self.elapsed_times = {"generate_spawn_tile": 0, "generate_direction": 0, "maximize": 0, "minimize": 0}
+
+    def get_empty_slots(self, state):
+        empty_slots = []
+        for x in range(len(state)):
+            for y in range(len(state[0])):
+                if state[x][y] == 0:
+                    empty_slots.append((x, y))
+        return empty_slots
+
+    def generate_spawn_child(self, state, slot, value):
+        new_child = copy.deepcopy(state)
+        new_child[slot[0]][slot[1]] = value
+        return new_child
 
     def generate_spawn_tile(self, state: List[List[int]]) -> List[List[List[int]]]:
         """Generates list of child states on computers turn
@@ -154,6 +167,7 @@ class MiniMaxPlayer:
         Returns:
             str: Direction to play ("left", "right", "up", "down")
         """
+        starttime = time.perf_counter()
         play_directions = ["up", "down", "left", "right"]
         lastchild = None
         lastchildname = None
@@ -181,6 +195,7 @@ class MiniMaxPlayer:
                 v = candidate_v
                 winning_direction = direction
 
+        print(f"{time.perf_counter() - starttime}")
         return winning_direction.capitalize()
 
     def maximize(self, state: List[List[int]], depth: int, alpha, beta):
@@ -256,6 +271,26 @@ class MiniMaxPlayer:
             self.elapsed_times["minimize"] += endtime - starttime
             return self.heuristic(state)
         v = HUGE_NUMBER
+
+        empty_slots = self.get_empty_slots(state)
+
+        for slot in empty_slots:
+            child = self.generate_spawn_child(state, slot, 2)
+            v = min(v, self.maximize(child, depth + 1, alpha, beta))
+            beta = min(beta, v)
+            if alpha >= beta:
+                endtime = time.perf_counter()
+                self.elapsed_times["minimize"] += endtime - starttime
+                return v
+
+            child = self.generate_spawn_child(state, slot, 4)
+            v = min(v, self.maximize(child, depth + 1, alpha, beta))
+            beta = min(beta, v)
+            if alpha >= beta:
+                endtime = time.perf_counter()
+                self.elapsed_times["minimize"] += endtime - starttime
+                return v
+        """
         children = self.generate_spawn_tile(state)
         for child in children:
             v = min(v, self.maximize(child, depth + 1, alpha, beta))
@@ -264,7 +299,9 @@ class MiniMaxPlayer:
                 endtime = time.perf_counter()
                 self.elapsed_times["minimize"] += endtime - starttime
                 return v
-        if len(children) == 0:
+        """
+        # if len(children) == 0:
+        if len(empty_slots) == 0:
             v = min(v, self.maximize(state, depth + 1, alpha, beta))
             beta = min(beta, v)
             if alpha >= beta:
