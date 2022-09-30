@@ -1,7 +1,9 @@
 import copy
-from typing import List
+from typing import List, Tuple
+from unittest.mock import mock_open
 from gamehandler.gamehandler import GameHandler
 import time
+import pickle
 
 HUGE_NUMBER = 999999999
 # SEARCH_DEPTH = 6
@@ -11,21 +13,19 @@ gamehandler = GameHandler()
 
 
 class MiniMaxPlayer:
-    def __init__(self):
-        self.turn_count = 0
-        self.generated_player_moves = 0
-        self.generated_game_moves = 0
-        self.visited_states = 0
-        self.counted_prunes = 0
-        self.recognized_dup_states = 0
-        self.elapsed_times = {
-            "generate_spawn_tile": 0,
-            "generate_direction": 0,
-            "maximize": 0,
-            "minimize": 0,
-        }
+    def __init__(self) -> None:
+        self.round_count = 0
 
-    def get_empty_slots(self, state):
+    def get_empty_slots(self, state: List[List[int]]) -> List[tuple]:
+        """Returns a list of empty slots. Used when generating possible moves on game's turn.
+        Currently not using this function but get_empty_uniques instead.
+
+        Args:
+            state (List[List[int]]): Game's state
+
+        Returns:
+            List[tuple]: List of X,Y coordinates representing empty slots on the game grid.
+        """
         empty_slots = []
         for x in range(len(state)):
             for y in range(len(state[0])):
@@ -33,7 +33,18 @@ class MiniMaxPlayer:
                     empty_slots.append((x, y))
         return empty_slots
 
-    def get_empty_uniques(self, grid):
+    def get_empty_uniques(self, grid: List[List[int]]) -> List[tuple]:
+        """Returns a list of empty slots in the game grid.
+        Used when generating possible moves on game's turn.
+        Disqualifies a slot if effectively identical slot has already been found,
+        meaning that the difference in position would not lead to new possible game states.
+
+        Args:
+            grid (List[List[int]]): Game's state
+
+        Returns:
+            List[tuple]: List of X,Y coordinates representing empty slots on the game grid.
+        """
         topmost = len(grid) - 1
         bottommost = 0
         leftmost = len(grid[0]) - 1
@@ -51,8 +62,6 @@ class MiniMaxPlayer:
                     if y > rightmost:
                         rightmost = y
 
-        # print(f"topmost: {topmost}\nbottommost: {bottommost}\nleftmost: {leftmost}\nrightmost: {rightmost}")
-
         topleft_empty = (topmost - 1, leftmost - 1)
         bottomleft_empty = (bottommost + 1, leftmost - 1)
         topright_empty = (topmost - 1, rightmost + 1)
@@ -60,18 +69,13 @@ class MiniMaxPlayer:
 
         empty_slots = [topleft_empty, bottomleft_empty, topright_empty, bottomright_empty]
 
-        # print(f"Going over vertical, rows from {topmost} to {bottommost}")
-        # print(f"   Columns from 0 to {leftmost - 1}")
         for x in range(topmost, bottommost + 1):
             for y in range(0, leftmost):
-                # print(f"{x},{y}")
                 empty_slots.append((x, y))
 
-        # print("Going over horizontal")
-        for x in range(4):
+        for x in range(len(grid)):
             for y in range(leftmost, rightmost + 1):
                 if grid[x][y] == 0:
-                    # print(f"{x},{y}")
                     empty_slots.append((x, y))
 
         constrained_empty_slots = []
@@ -82,8 +86,18 @@ class MiniMaxPlayer:
 
         return constrained_empty_slots
 
-    def generate_spawn_child(self, state, slot, value):
-        new_child = copy.deepcopy(state)
+    def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -> List[List[int]]:
+        """Generates a child state for given state, representing a possible state created on game's turn
+
+        Args:
+            state (List[List[int]]): Game's state
+            slot (Tuple): X and Y coordinates of the slot to add tile to
+            value (int): value of the new tile
+
+        Returns:
+            _type_: List[List[int]]
+        """
+        new_child = pickle.loads(pickle.dumps(state, -1))
         new_child[slot[0]][slot[1]] = value
         return new_child
 
@@ -96,20 +110,17 @@ class MiniMaxPlayer:
         Returns:
             List[List[List[int]]]: List of possible child states
         """
-        starttime = time.perf_counter()
         children = []
         for x, row in enumerate(state):
             for y, col in enumerate(row):
                 if col == 0:
-                    new_child = copy.deepcopy(state)
+                    new_child = pickle.loads(pickle.dumps(state, -1))
                     new_child[x][y] = 2
                     children.append(new_child)
 
-                    new_child = copy.deepcopy(state)
+                    new_child = pickle.loads(pickle.dumps(state, -1))
                     new_child[x][y] = 4
                     children.append(new_child)
-        endtime = time.perf_counter()
-        self.elapsed_times["generate_spawn_tile"] += endtime - starttime
         return children
 
     def generate_direction(self, state: List[List[int]], direction: str) -> List[List[int]]:
@@ -122,7 +133,6 @@ class MiniMaxPlayer:
         Returns:
             List[List[int]]: Game state after moving the tiles to given direction
         """
-        starttime = time.perf_counter()
 
         new_state = []
         rotated_grid = self.rotate_grid(state, direction)
@@ -154,8 +164,6 @@ class MiniMaxPlayer:
 
             new_state.append(merged_tiles)
 
-        endtime = time.perf_counter()
-        self.elapsed_times["generate_direction"] += endtime - starttime
         return self.rotate_grid(new_state, direction)
 
     def rotate_grid(self, state: List[List[int]], direction: str) -> List[List[int]]:
@@ -225,9 +233,6 @@ class MiniMaxPlayer:
             str: Direction to play ("left", "right", "up", "down")
         """
         starttime = time.perf_counter()
-        self.turn_count += 1
-        self.generated_player_moves = 0
-        self.generated_game_moves = 0
         play_directions = ["up", "down", "left", "right"]
         lastchild = None
         lastchildname = None
@@ -236,15 +241,7 @@ class MiniMaxPlayer:
         for direction in play_directions:
             child = self.generate_direction(state, direction)
 
-            if child == state:
-                continue
-
-            if direction == "down" and lastchild == child[::-1]:
-                self.recognized_dup_states += 1
-                continue
-
-            if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
-                self.recognized_dup_states += 1
+            if self.invalid_state(state, child, direction, lastchild, lastchildname):
                 continue
 
             lastchild = child
@@ -255,9 +252,40 @@ class MiniMaxPlayer:
                 v = candidate_v
                 winning_direction = direction
 
-        print(f"Move no.{self.turn_count}: {winning_direction} {time.perf_counter() - starttime}")
-        print(f"Generated player states: {self.generated_player_moves}, game states: {self.generated_game_moves}")
+        self.round_count += 1
+        print(f"{self.round_count}; {len(self.get_empty_slots(state))}; {time.perf_counter() - starttime} ")
         return winning_direction.capitalize()
+
+    def invalid_state(
+        self,
+        state: List[List[int]],
+        child: List[List[int]],
+        direction: str,
+        lastchild: List[List[int]],
+        lastchildname: str,
+    ) -> bool:
+        """Checks if the given state is relevant for minimizing. States that are identical to current state or previously minimized states are irrelevant.
+
+        Args:
+            state (List[List[int]]): Current state of the game
+            child (List[List[int]]): Generated child state, possibly to be minimized next
+            direction (str): Which direction from the current state does the child represent
+            lastchild (List[List[int]]): Previously minimized child
+            lastchildname (str): previously minimized child's direction
+
+        Returns:
+            bool: _description_
+        """
+        if child == state:
+            return True
+
+        if direction == "down" and lastchild == child[::-1]:
+            return True
+
+        if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
+            return True
+
+        return False
 
     def maximize(self, state: List[List[int]], depth: int, alpha, beta):
         """Maximizer function for the minmax -algorithm
@@ -269,32 +297,17 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-        starttime = time.perf_counter()
-        self.visited_states += 1
-        if gamehandler.game_is_over(state):
-            endtime = time.perf_counter()
-            self.elapsed_times["maximize"] += endtime - starttime
+        if gamehandler.game_is_over(state) or depth > SEARCH_DEPTH:
             return self.heuristic(state)
-        if depth > SEARCH_DEPTH:
-            endtime = time.perf_counter()
-            self.elapsed_times["maximize"] += endtime - starttime
-            return self.heuristic(state)
+
         v = -HUGE_NUMBER
         play_directions = ["up", "down", "left", "right"]
         lastchild = None
         lastchildname = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
-            self.generated_player_moves += 1
-            if child == state:
-                continue
 
-            if direction == "down" and lastchild == child[::-1]:
-                self.recognized_dup_states += 1
-                continue
-
-            if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
-                self.recognized_dup_states += 1
+            if self.invalid_state(state, child, direction, lastchild, lastchildname):
                 continue
 
             lastchild = child
@@ -303,12 +316,7 @@ class MiniMaxPlayer:
             v = max(v, self.minimize(child, depth + 1, alpha, beta))
             alpha = max(alpha, v)
             if alpha >= beta:
-                self.counted_prunes += 1
-                endtime = time.perf_counter()
-                self.elapsed_times["maximize"] += endtime - starttime
                 return v
-        endtime = time.perf_counter()
-        self.elapsed_times["maximize"] += endtime - starttime
         return v
 
     def minimize(self, state: List[List[int]], depth: int, alpha, beta):
@@ -321,47 +329,23 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-        starttime = time.perf_counter()
-        self.visited_states += 1
-        if gamehandler.game_is_over(state):
-            endtime = time.perf_counter()
-            self.elapsed_times["minimize"] += endtime - starttime
+        if gamehandler.game_is_over(state) or depth > SEARCH_DEPTH:
             return self.heuristic(state)
-        if depth > SEARCH_DEPTH:
-            endtime = time.perf_counter()
-            self.elapsed_times["minimize"] += endtime - starttime
-            return self.heuristic(state)
-        v = HUGE_NUMBER
 
+        v = HUGE_NUMBER
         empty_slots = self.get_empty_uniques(state)
 
         for slot in empty_slots:
-            child = self.generate_spawn_child(state, slot, 2)
-            v = min(v, self.maximize(child, depth + 1, alpha, beta))
-            beta = min(beta, v)
-            if alpha >= beta:
-                endtime = time.perf_counter()
-                self.elapsed_times["minimize"] += endtime - starttime
-                return v
-
-            child = self.generate_spawn_child(state, slot, 4)
-            v = min(v, self.maximize(child, depth + 1, alpha, beta))
-            beta = min(beta, v)
-            if alpha >= beta:
-                endtime = time.perf_counter()
-                self.elapsed_times["minimize"] += endtime - starttime
-                return v
-
-            self.generated_game_moves += 2
+            for i in range(2):
+                child = self.generate_spawn_child(state, slot, (i + 1) * 2)
+                v = min(v, self.maximize(child, depth + 1, alpha, beta))
+                beta = min(beta, v)
+                if alpha >= beta:
+                    return v
 
         if len(empty_slots) == 0:
             v = min(v, self.maximize(state, depth + 1, alpha, beta))
             beta = min(beta, v)
             if alpha >= beta:
-                self.counted_prunes += 1
-                endtime = time.perf_counter()
-                self.elapsed_times["minimize"] += endtime - starttime
                 return v
-        endtime = time.perf_counter()
-        self.elapsed_times["minimize"] += endtime - starttime
         return v

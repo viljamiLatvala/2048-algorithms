@@ -13,3 +13,4 @@ AI bot for the game 2048. Created for University of Helsinki's course TKT20010: 
 - [Pydoc3 generated HTML Documentation](https://viljamilatvala.github.io/2048-algorithms/documentation/html_documentation/src/index.html)
 - [Definition document](documentation/definition_doc.md)
 - [Testing document](documentation/testing_doc.md)
+- [Implementation document](documentation/implementation_doc.md)

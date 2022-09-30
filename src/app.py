@@ -33,10 +33,10 @@ def player_selection() -> object:
     Returns:
         object: Player -class representing the selected player
     """
-    players = [UserInputPlayer, MiniMaxPlayer]
+    players = [MiniMaxPlayer, UserInputPlayer]
     print("\nSelect who plays the game(s)")
-    print("\t[1] - UserInputPlayer (You choose the moves)")
-    print("\t[2] - MinMaxAiPlayer [TODO]")
+    print("\t[1] - MinMaxAiPlayer")
+    print("\t[2] - UserInputPlayer (You choose the moves)")
     selection = int(input("Selection: ")) - 1
     return players[selection]
 
@@ -77,7 +77,6 @@ if __name__ == "__main__":
         "player",
         "game",
         "run_id",
-        "run_id_custom",
         "highest_tile",
         "moves_count",
         "time_spent",
@@ -112,11 +111,5 @@ if __name__ == "__main__":
                 max_score = gridmax
 
         game.quit_game()
-        print(
-            f"Game {game_no + 1}/{games_to_play} over! Score: {max_score}, played_turns: {turn_count}"
-        )
-        print(f"Visited states: {player.visited_states}")
-        print(f"Counted duplicate states: {player.recognized_dup_states}")
-        print(f"Counted prunes: {player.counted_prunes}")
-        print(f"Elapsed times: {player.elapsed_times}")
+        print(f"Game {game_no + 1}/{games_to_play} over! Score: {max_score}, played_turns: {turn_count}")
     logfile.close()

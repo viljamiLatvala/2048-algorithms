@@ -62,6 +62,14 @@ class GameHandler:
         return True
 
     def get_available_merges(self, grid: List[List[int]]) -> int:
+        """Counts and returns available merges in given state. Created for using to sort created child states to get more efficient A/B pruning but currently not used since not found performant.
+
+        Args:
+            grid (List[List[int]]): Game's state
+
+        Returns:
+            int: Count of available merges
+        """
         merges = 0
 
         for i in range(len(grid)):
@@ -85,20 +93,3 @@ class GameHandler:
                         merges += 1
 
         return merges
-
-    def get_tiles(self, grid: List[List[int]]) -> List[str]:
-        """Return list of strings representing each tile on grid
-
-        Args:
-            grid (List[List[int]]): the games current state
-
-        Returns:
-            List[str]: list of strings representing each tile on grid
-        """
-        tile_list = []
-        for x, row in enumerate(grid):
-            for y, col in enumerate(row):
-                if col > 0:
-                    tile_list.append(f"col: {y} - row {x} - value {col}")
-
-        return tile_list
