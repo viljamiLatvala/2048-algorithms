@@ -5,17 +5,25 @@ import time
 
 HUGE_NUMBER = 999999999
 # SEARCH_DEPTH = 6
-SEARCH_DEPTH = 6
+SEARCH_DEPTH = 5
 
 gamehandler = GameHandler()
 
 
 class MiniMaxPlayer:
     def __init__(self):
+        self.turn_count = 0
+        self.generated_player_moves = 0
+        self.generated_game_moves = 0
         self.visited_states = 0
         self.counted_prunes = 0
         self.recognized_dup_states = 0
-        self.elapsed_times = {"generate_spawn_tile": 0, "generate_direction": 0, "maximize": 0, "minimize": 0}
+        self.elapsed_times = {
+            "generate_spawn_tile": 0,
+            "generate_direction": 0,
+            "maximize": 0,
+            "minimize": 0,
+        }
 
     def get_empty_slots(self, state):
         empty_slots = []
@@ -55,7 +63,9 @@ class MiniMaxPlayer:
         self.elapsed_times["generate_spawn_tile"] += endtime - starttime
         return children
 
-    def generate_direction(self, state: List[List[int]], direction: str) -> List[List[int]]:
+    def generate_direction(
+        self, state: List[List[int]], direction: str
+    ) -> List[List[int]]:
         """Generates the state of the grid after players move to given direction
 
         Args:
@@ -168,6 +178,9 @@ class MiniMaxPlayer:
             str: Direction to play ("left", "right", "up", "down")
         """
         starttime = time.perf_counter()
+        self.turn_count += 1
+        self.generated_player_moves = 0
+        self.generated_game_moves = 0
         play_directions = ["up", "down", "left", "right"]
         lastchild = None
         lastchildname = None
@@ -183,7 +196,11 @@ class MiniMaxPlayer:
                 self.recognized_dup_states += 1
                 continue
 
-            if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
+            if (
+                direction == "right"
+                and lastchildname == "left"
+                and lastchild == self.rotate_grid(child, "right")
+            ):
                 self.recognized_dup_states += 1
                 continue
 
@@ -195,7 +212,12 @@ class MiniMaxPlayer:
                 v = candidate_v
                 winning_direction = direction
 
-        print(f"{time.perf_counter() - starttime}")
+        print(
+            f"Move no.{self.turn_count}: {winning_direction} {time.perf_counter() - starttime}"
+        )
+        print(
+            f"Generated player states: {self.generated_player_moves}, game states: {self.generated_game_moves}"
+        )
         return winning_direction.capitalize()
 
     def maximize(self, state: List[List[int]], depth: int, alpha, beta):
@@ -224,7 +246,7 @@ class MiniMaxPlayer:
         lastchildname = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
-
+            self.generated_player_moves += 1
             if child == state:
                 continue
 
@@ -232,7 +254,11 @@ class MiniMaxPlayer:
                 self.recognized_dup_states += 1
                 continue
 
-            if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
+            if (
+                direction == "right"
+                and lastchildname == "left"
+                and lastchild == self.rotate_grid(child, "right")
+            ):
                 self.recognized_dup_states += 1
                 continue
 
@@ -242,6 +268,9 @@ class MiniMaxPlayer:
             v = max(v, self.minimize(child, depth + 1, alpha, beta))
             alpha = max(alpha, v)
             if alpha >= beta:
+                print(
+                    f"Maximizer pruned on direction {play_directions.index(direction)+1}/{len(play_directions)}"
+                )
                 self.counted_prunes += 1
                 endtime = time.perf_counter()
                 self.elapsed_times["maximize"] += endtime - starttime
@@ -290,17 +319,9 @@ class MiniMaxPlayer:
                 endtime = time.perf_counter()
                 self.elapsed_times["minimize"] += endtime - starttime
                 return v
-        """
-        children = self.generate_spawn_tile(state)
-        for child in children:
-            v = min(v, self.maximize(child, depth + 1, alpha, beta))
-            beta = min(beta, v)
-            if alpha >= beta:
-                endtime = time.perf_counter()
-                self.elapsed_times["minimize"] += endtime - starttime
-                return v
-        """
-        # if len(children) == 0:
+
+            self.generated_game_moves += 2
+
         if len(empty_slots) == 0:
             v = min(v, self.maximize(state, depth + 1, alpha, beta))
             beta = min(beta, v)

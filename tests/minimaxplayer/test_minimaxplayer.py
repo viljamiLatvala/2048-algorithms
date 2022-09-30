@@ -1,4 +1,5 @@
 import pathlib
+from tkinter import RIGHT
 import unittest
 import sys
 
@@ -41,12 +42,16 @@ class TestMiniMaxPlayer(unittest.TestCase):
     def test_rotate_grid_up(self):
         player = MiniMaxPlayer()
         grid = [[2, 2, 8], [0, 4, 0], [0, 0, 0]]
-        self.assertEqual(player.rotate_grid(grid, "up"), [[2, 0, 0], [2, 4, 0], [8, 0, 0]])
+        self.assertEqual(
+            player.rotate_grid(grid, "up"), [[2, 0, 0], [2, 4, 0], [8, 0, 0]]
+        )
 
     def test_rotate_grid_down(self):
         player = MiniMaxPlayer()
         grid = [[2, 2, 8], [2, 4, 0], [2, 8, 8]]
-        self.assertEqual(player.rotate_grid(grid, "down"), [[8, 0, 8], [8, 4, 2], [2, 2, 2]])
+        self.assertEqual(
+            player.rotate_grid(grid, "down"), [[8, 0, 8], [8, 4, 2], [2, 2, 2]]
+        )
 
     def test_grid_similarity(self):
         player = MiniMaxPlayer()
@@ -60,6 +65,18 @@ class TestMiniMaxPlayer(unittest.TestCase):
             player.rotate_grid(player.generate_direction(grid, "right"), "right"),
         )
 
+    def test_grid_similarity2(self):
+        player = MiniMaxPlayer()
+        grid = [[0, 2, 0], [2, 0, 0], [0, 0, 0]]
+        left = player.rotate_grid(grid, "left")
+        right = player.rotate_grid(grid, "right")
+        up = player.rotate_grid(grid, "up")
+        down = player.rotate_grid(grid, "down")
+        print(f"LEFT: {left}")
+        print(f"RIGHT: {right}")
+        print(f"UP: {up}")
+        print(f"DOWN: {down}")
+
     def test_generate_direction_left(self):
         player = MiniMaxPlayer()
         grid = [[2, 2, 8], [2, 4, 0], [2, 8, 8]]
@@ -71,17 +88,23 @@ class TestMiniMaxPlayer(unittest.TestCase):
     def test_generate_direction_right(self):
         player = MiniMaxPlayer()
         grid = [[2, 2, 8], [2, 4, 0], [2, 8, 8]]
-        self.assertEqual(player.generate_direction(grid, "right"), [[0, 4, 8], [0, 2, 4], [0, 2, 16]])
+        self.assertEqual(
+            player.generate_direction(grid, "right"), [[0, 4, 8], [0, 2, 4], [0, 2, 16]]
+        )
 
     def test_generate_direction_down(self):
         player = MiniMaxPlayer()
         grid = [[2, 2, 8], [2, 4, 0], [2, 8, 8]]
-        self.assertEqual(player.generate_direction(grid, "down"), [[0, 2, 0], [2, 4, 0], [4, 8, 16]])
+        self.assertEqual(
+            player.generate_direction(grid, "down"), [[0, 2, 0], [2, 4, 0], [4, 8, 16]]
+        )
 
     def test_generate_direction_up(self):
         player = MiniMaxPlayer()
         grid = [[2, 2, 8], [2, 4, 0], [2, 0, 8]]
-        self.assertEqual(player.generate_direction(grid, "up"), [[4, 2, 16], [2, 4, 0], [0, 0, 0]])
+        self.assertEqual(
+            player.generate_direction(grid, "up"), [[4, 2, 16], [2, 4, 0], [0, 0, 0]]
+        )
 
     def test_generate_direction_consecutive_merge(self):
         player = MiniMaxPlayer()
@@ -121,4 +144,4 @@ class TestMiniMaxPlayer(unittest.TestCase):
 if __name__ == "__main__":
     # unittest.main()
     ut = TestMiniMaxPlayer()
-    ut.test_grid_similarity()
+    ut.test_grid_similarity2()
