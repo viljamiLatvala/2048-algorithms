@@ -5,7 +5,7 @@ import time
 
 HUGE_NUMBER = 999999999
 # SEARCH_DEPTH = 6
-SEARCH_DEPTH = 5
+SEARCH_DEPTH = 6
 
 gamehandler = GameHandler()
 
@@ -32,6 +32,55 @@ class MiniMaxPlayer:
                 if state[x][y] == 0:
                     empty_slots.append((x, y))
         return empty_slots
+
+    def get_empty_uniques(self, grid):
+        topmost = len(grid) - 1
+        bottommost = 0
+        leftmost = len(grid[0]) - 1
+        rightmost = 0
+
+        for x in range(len(grid)):
+            for y in range(len(grid[0])):
+                if grid[x][y] != 0:
+                    if x < topmost:
+                        topmost = x
+                    if x > bottommost:
+                        bottommost = x
+                    if y < leftmost:
+                        leftmost = y
+                    if y > rightmost:
+                        rightmost = y
+
+        # print(f"topmost: {topmost}\nbottommost: {bottommost}\nleftmost: {leftmost}\nrightmost: {rightmost}")
+
+        topleft_empty = (topmost - 1, leftmost - 1)
+        bottomleft_empty = (bottommost + 1, leftmost - 1)
+        topright_empty = (topmost - 1, rightmost + 1)
+        bottomright_empty = (bottommost + 1, rightmost + 1)
+
+        empty_slots = [topleft_empty, bottomleft_empty, topright_empty, bottomright_empty]
+
+        # print(f"Going over vertical, rows from {topmost} to {bottommost}")
+        # print(f"   Columns from 0 to {leftmost - 1}")
+        for x in range(topmost, bottommost + 1):
+            for y in range(0, leftmost):
+                # print(f"{x},{y}")
+                empty_slots.append((x, y))
+
+        # print("Going over horizontal")
+        for x in range(4):
+            for y in range(leftmost, rightmost + 1):
+                if grid[x][y] == 0:
+                    # print(f"{x},{y}")
+                    empty_slots.append((x, y))
+
+        constrained_empty_slots = []
+
+        for slot in empty_slots:
+            if slot[0] < len(grid) and slot[1] < len(grid[0]):
+                constrained_empty_slots.append(slot)
+
+        return constrained_empty_slots
 
     def generate_spawn_child(self, state, slot, value):
         new_child = copy.deepcopy(state)
@@ -63,9 +112,7 @@ class MiniMaxPlayer:
         self.elapsed_times["generate_spawn_tile"] += endtime - starttime
         return children
 
-    def generate_direction(
-        self, state: List[List[int]], direction: str
-    ) -> List[List[int]]:
+    def generate_direction(self, state: List[List[int]], direction: str) -> List[List[int]]:
         """Generates the state of the grid after players move to given direction
 
         Args:
@@ -196,11 +243,7 @@ class MiniMaxPlayer:
                 self.recognized_dup_states += 1
                 continue
 
-            if (
-                direction == "right"
-                and lastchildname == "left"
-                and lastchild == self.rotate_grid(child, "right")
-            ):
+            if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
                 self.recognized_dup_states += 1
                 continue
 
@@ -212,12 +255,8 @@ class MiniMaxPlayer:
                 v = candidate_v
                 winning_direction = direction
 
-        print(
-            f"Move no.{self.turn_count}: {winning_direction} {time.perf_counter() - starttime}"
-        )
-        print(
-            f"Generated player states: {self.generated_player_moves}, game states: {self.generated_game_moves}"
-        )
+        print(f"Move no.{self.turn_count}: {winning_direction} {time.perf_counter() - starttime}")
+        print(f"Generated player states: {self.generated_player_moves}, game states: {self.generated_game_moves}")
         return winning_direction.capitalize()
 
     def maximize(self, state: List[List[int]], depth: int, alpha, beta):
@@ -254,11 +293,7 @@ class MiniMaxPlayer:
                 self.recognized_dup_states += 1
                 continue
 
-            if (
-                direction == "right"
-                and lastchildname == "left"
-                and lastchild == self.rotate_grid(child, "right")
-            ):
+            if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
                 self.recognized_dup_states += 1
                 continue
 
@@ -268,9 +303,6 @@ class MiniMaxPlayer:
             v = max(v, self.minimize(child, depth + 1, alpha, beta))
             alpha = max(alpha, v)
             if alpha >= beta:
-                print(
-                    f"Maximizer pruned on direction {play_directions.index(direction)+1}/{len(play_directions)}"
-                )
                 self.counted_prunes += 1
                 endtime = time.perf_counter()
                 self.elapsed_times["maximize"] += endtime - starttime
@@ -301,7 +333,7 @@ class MiniMaxPlayer:
             return self.heuristic(state)
         v = HUGE_NUMBER
 
-        empty_slots = self.get_empty_slots(state)
+        empty_slots = self.get_empty_uniques(state)
 
         for slot in empty_slots:
             child = self.generate_spawn_child(state, slot, 2)

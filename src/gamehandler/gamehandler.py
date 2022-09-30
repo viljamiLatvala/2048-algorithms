@@ -61,6 +61,31 @@ class GameHandler:
         # print("\t\tgame_is_over: true")
         return True
 
+    def get_available_merges(self, grid: List[List[int]]) -> int:
+        merges = 0
+
+        for i in range(len(grid)):
+            for j in range(len(grid[i])):
+                # Check if there are available merges
+                # Left
+                if j > 0:
+                    if grid[i][j] == grid[i][j - 1]:
+                        merges += 1
+                # Right
+                if j < len(grid[i]) - 1:
+                    if grid[i][j] == grid[i][j + 1]:
+                        merges += 1
+                # Above
+                if i > 0:
+                    if grid[i][j] == grid[i - 1][j]:
+                        merges += 1
+                # Below
+                if i < len(grid) - 1:
+                    if grid[i][j] == grid[i + 1][j]:
+                        merges += 1
+
+        return merges
+
     def get_tiles(self, grid: List[List[int]]) -> List[str]:
         """Return list of strings representing each tile on grid
 
