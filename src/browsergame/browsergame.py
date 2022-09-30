@@ -32,22 +32,22 @@ class BrowserGame:
     def move_up(self):
         """Commands the game to move up"""
         self.game.send_keys(Keys.ARROW_UP)
-        time.sleep(0.2)
+        time.sleep(0.10)
 
     def move_down(self):
         """Commands the game to move down"""
         self.game.send_keys(Keys.ARROW_DOWN)
-        time.sleep(0.2)
+        time.sleep(0.10)
 
     def move_left(self):
         """Commands the game to move left"""
         self.game.send_keys(Keys.ARROW_LEFT)
-        time.sleep(0.2)
+        time.sleep(0.10)
 
     def move_right(self):
         """Commands the game to move right"""
         self.game.send_keys(Keys.ARROW_RIGHT)
-        time.sleep(0.2)
+        time.sleep(0.10)
 
     def read_grid(self):
         """Parses the HTML representing the game grid, returns a 2-dimensional array representation"""

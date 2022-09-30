@@ -7,7 +7,7 @@ import pickle
 
 HUGE_NUMBER = 999999999
 # SEARCH_DEPTH = 6
-SEARCH_DEPTH = 6
+SEARCH_DEPTH = 4
 
 gamehandler = GameHandler()
 
