@@ -37,3 +37,4 @@ https://stackoverflow.com/questions/22342854/what-is-the-optimal-algorithm-for-t
 https://en.wikipedia.org/wiki/Minimax
 https://en.wikipedia.org/wiki/Expectiminimax
 https://stanford-cs221.github.io/autumn2019-extra/posters/184.pdf
+https://theresamigler.files.wordpress.com/2020/03/2048.pdf

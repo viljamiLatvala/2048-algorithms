@@ -11,3 +11,9 @@
 ## What will be done next?
 
 ## Other feedback or questions to the course instructor
+
+## Hours worked
+
+| Day       | Hours worked | Description                                      |
+| --------- | ------------ | ------------------------------------------------ |
+| TUE 4.10. | 3            | Implementing new heuristic for evaluating states |

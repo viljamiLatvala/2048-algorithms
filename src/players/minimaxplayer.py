@@ -1,3 +1,4 @@
+from cmath import sqrt
 import copy
 from typing import List, Tuple
 from unittest.mock import mock_open
@@ -7,7 +8,7 @@ import pickle
 
 HUGE_NUMBER = 999999999
 # SEARCH_DEPTH = 6
-SEARCH_DEPTH = 4
+SEARCH_DEPTH = 6
 
 gamehandler = GameHandler()
 
@@ -204,15 +205,57 @@ class MiniMaxPlayer:
 
             return rotated_state
 
-    def heuristic(self, state: List[List[int]]) -> float:
-        """Heuristic function to evaluate the value of a state that is not an end state
+    def greedy_heuristic(self, state):
+        return gamehandler.get_grid_max_value(state)
 
-        Args:
-            state (List[List[int]]): _description_
+    def empty_heuristic(self, state):
+        zeroes = 0
+        for row in state:
+            for col in row:
+                if col == 0:
+                    zeroes += 1
+        return zeroes
 
-        Returns:
-            float: _description_
-        """
+    def uniform_heuristic(self, state):
+        different_tile_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        for row in state:
+            for col in row:
+                if col == 0:
+                    continue
+                if col == 2:
+                    different_tile_values[0] += 1
+                else:
+                    if len(different_tile_values) < sqrt(col).real:
+                        for _ in range(sqrt(col) - len(different_tile_values)):
+                            different_tile_values.append(0)
+
+                    different_tile_values[int(sqrt(col).real) - 1] += 1
+        return sum([x**3 for x in different_tile_values])
+
+    def monotonicity_heuristic(self, state):
+        best = -1
+        ted_state = copy.deepcopy(state)
+        for _ in range(4):  # Board is evaluated from all 4 directions
+            current = 0
+            for row_no in range(4):
+                for col_no in range(3):
+                    if ted_state[row_no][col_no] == 0:
+                        continue
+                    if ted_state[row_no][col_no] >= ted_state[row_no][col_no + 1]:
+                        current += 1
+            for col_no in range(4):
+                for row_no in range(3):
+                    if ted_state[row_no][col_no] == 0:
+                        continue
+                    if ted_state[row_no][col_no] >= ted_state[row_no + 1][col_no]:
+                        current += 1
+
+            best = best if best >= current else current
+
+            ted_state = list(zip(*ted_state[::-1]))
+        return best
+
+    def old_heuristic(self, state):
         tile_sum = 0
         tiles = 0
         for row in state:
@@ -222,6 +265,22 @@ class MiniMaxPlayer:
                     tiles += 1
 
         return tile_sum / tiles
+
+    def heuristic(self, state: List[List[int]]) -> float:
+        """Heuristic function to evaluate the value of a state that is not an end state
+
+        Args:
+            state (List[List[int]]): _description_
+
+        Returns:
+            float: _description_
+        """
+
+        return (
+            (self.monotonicity_heuristic(state)) / 2
+            + sqrt(self.greedy_heuristic(state)).real
+            + self.empty_heuristic(state)
+        )
 
     def play_round(self, state: List[List[int]]):
         """Calculates the next move for given games state
