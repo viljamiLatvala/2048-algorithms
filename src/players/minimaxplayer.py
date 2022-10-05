@@ -168,8 +168,7 @@ class MiniMaxPlayer:
                     allow_merge = True
 
             # Fill up rest of the row with zeroes
-            while len(merged_tiles) < len(state[0]):
-                merged_tiles.append(0)
+            merged_tiles.extend((4 - len(merged_tiles)) * [0])
 
             new_state.append(merged_tiles)
 
