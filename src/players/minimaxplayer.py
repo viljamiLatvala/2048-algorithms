@@ -1,5 +1,6 @@
-from cmath import sqrt
+import math
 import copy
+from multiprocessing.spawn import old_main_modules
 from typing import List, Tuple
 from unittest.mock import mock_open
 from gamehandler.gamehandler import GameHandler
@@ -8,7 +9,7 @@ import pickle
 
 HUGE_NUMBER = 999999999
 # SEARCH_DEPTH = 6
-SEARCH_DEPTH = 6
+SEARCH_DEPTH = 5
 
 gamehandler = GameHandler()
 
@@ -16,6 +17,7 @@ gamehandler = GameHandler()
 class MiniMaxPlayer:
     def __init__(self) -> None:
         self.round_count = 0
+        self.generated_states = 0
 
     def get_empty_slots(self, state: List[List[int]]) -> List[tuple]:
         """Returns a list of empty slots. Used when generating possible moves on game's turn.
@@ -225,11 +227,11 @@ class MiniMaxPlayer:
                 if col == 2:
                     different_tile_values[0] += 1
                 else:
-                    if len(different_tile_values) < sqrt(col).real:
-                        for _ in range(sqrt(col) - len(different_tile_values)):
+                    if len(different_tile_values) < math.log(col, 2):
+                        for _ in range(math.log(col, 2) - len(different_tile_values)):
                             different_tile_values.append(0)
 
-                    different_tile_values[int(sqrt(col).real) - 1] += 1
+                    different_tile_values[int(math.log(col, 2)) - 1] += 1
         return sum([x**3 for x in different_tile_values])
 
     def monotonicity_heuristic(self, state):
@@ -275,12 +277,16 @@ class MiniMaxPlayer:
         Returns:
             float: _description_
         """
-
+        """
+        endstate_minus = 500 if gamehandler.game_is_over(state) else 0
         return (
             (self.monotonicity_heuristic(state)) / 2
-            + sqrt(self.greedy_heuristic(state)).real
+            + (math.log(self.greedy_heuristic(state), 2) * 2)
             + self.empty_heuristic(state)
+            - endstate_minus
         )
+        """
+        return self.old_heuristic(state)
 
     def play_round(self, state: List[List[int]]):
         """Calculates the next move for given games state
@@ -299,6 +305,7 @@ class MiniMaxPlayer:
         winning_direction = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
+            self.generated_states += 1
 
             if self.invalid_state(state, child, direction, lastchild, lastchildname):
                 continue
@@ -312,6 +319,8 @@ class MiniMaxPlayer:
                 winning_direction = direction
 
         self.round_count += 1
+        print(f"Generated states: {self.generated_states}")
+        self.generated_states = 0
         print(f"{self.round_count}; {len(self.get_empty_slots(state))}; {time.perf_counter() - starttime} ")
         return winning_direction.capitalize()
 
@@ -365,7 +374,7 @@ class MiniMaxPlayer:
         lastchildname = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
-
+            self.generated_states += 1
             if self.invalid_state(state, child, direction, lastchild, lastchildname):
                 continue
 
@@ -401,6 +410,8 @@ class MiniMaxPlayer:
                 beta = min(beta, v)
                 if alpha >= beta:
                     return v
+
+                self.generated_states += 1
 
         if len(empty_slots) == 0:
             v = min(v, self.maximize(state, depth + 1, alpha, beta))

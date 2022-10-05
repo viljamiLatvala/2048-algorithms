@@ -32,22 +32,18 @@ class BrowserGame:
     def move_up(self):
         """Commands the game to move up"""
         self.game.send_keys(Keys.ARROW_UP)
-        time.sleep(0.1)
 
     def move_down(self):
         """Commands the game to move down"""
         self.game.send_keys(Keys.ARROW_DOWN)
-        time.sleep(0.1)
 
     def move_left(self):
         """Commands the game to move left"""
         self.game.send_keys(Keys.ARROW_LEFT)
-        time.sleep(0.1)
 
     def move_right(self):
         """Commands the game to move right"""
         self.game.send_keys(Keys.ARROW_RIGHT)
-        time.sleep(0.1)
 
     def read_grid(self):
         """Parses the HTML representing the game grid, returns a 2-dimensional array representation"""
@@ -64,7 +60,7 @@ class BrowserGame:
             pos_str = tile_classes[pos_str_start:pos_str_end]
             tile_col = int(pos_str[0]) - 1
             tile_row = int(pos_str[2]) - 1
-            tile_val = int(tile.text)
+            tile_val = int(tile_classes.split(" ")[1].split("-")[1])
             grid[tile_row][tile_col] = tile_val
 
         return grid
