@@ -4,6 +4,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import NoSuchElementException
 
 # <a class="keep-playing-button">Keep going</a>
 class BrowserGame:
@@ -21,7 +22,12 @@ class BrowserGame:
         """Open browser an navigate to games url. Accept cookie consent"""
 
         self.driver.get(self.url)
-        self.driver.find_element(By.ID, "ez-accept-all").click()
+        try:
+            cookie_prompt = self.driver.find_element(By.ID, "ez-accept-all")
+            cookie_prompt.click()
+        except NoSuchElementException:
+            pass
+
         self.game = self.driver.find_element(By.TAG_NAME, "body")
 
     def quit_game(self):
@@ -47,8 +53,8 @@ class BrowserGame:
 
     def read_grid(self):
         """Parses the HTML representing the game grid, returns a 2-dimensional array representation"""
+        time.sleep(0.025)
         grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
-
         tile_container = self.driver.find_element(By.CLASS_NAME, "tile-container")
         tiles = tile_container.find_elements(By.CLASS_NAME, "tile")
         for tile in tiles:
