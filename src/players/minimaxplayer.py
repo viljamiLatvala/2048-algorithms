@@ -41,59 +41,6 @@ class MiniMaxPlayer:
                     empty_slots.append((x, y))
         return empty_slots
 
-    def get_empty_uniques(self, grid: List[List[int]]) -> List[tuple]:
-        """Returns a list of empty slots in the game grid.
-        Used when generating possible moves on game's turn.
-        Disqualifies a slot if effectively identical slot has already been found,
-        meaning that the difference in position would not lead to new possible game states.
-
-        Args:
-            grid (List[List[int]]): Game's state
-
-        Returns:
-            List[tuple]: List of X,Y coordinates representing empty slots on the game grid.
-        """
-        topmost = len(grid) - 1
-        bottommost = 0
-        leftmost = len(grid[0]) - 1
-        rightmost = 0
-
-        for x in range(len(grid)):
-            for y in range(len(grid[0])):
-                if grid[x][y] != 0:
-                    if x < topmost:
-                        topmost = x
-                    if x > bottommost:
-                        bottommost = x
-                    if y < leftmost:
-                        leftmost = y
-                    if y > rightmost:
-                        rightmost = y
-
-        topleft_empty = (topmost - 1, leftmost - 1)
-        bottomleft_empty = (bottommost + 1, leftmost - 1)
-        topright_empty = (topmost - 1, rightmost + 1)
-        bottomright_empty = (bottommost + 1, rightmost + 1)
-
-        empty_slots = [topleft_empty, bottomleft_empty, topright_empty, bottomright_empty]
-
-        for x in range(topmost, bottommost + 1):
-            for y in range(0, leftmost):
-                empty_slots.append((x, y))
-
-        for x in range(len(grid)):
-            for y in range(leftmost, rightmost + 1):
-                if grid[x][y] == 0:
-                    empty_slots.append((x, y))
-
-        constrained_empty_slots = []
-
-        for slot in empty_slots:
-            if slot[0] < len(grid) and slot[1] < len(grid[0]):
-                constrained_empty_slots.append(slot)
-
-        return constrained_empty_slots
-
     def copy_grid(self, item):
         grid = [[], [], [], []]
         for i in range(4):
@@ -114,28 +61,6 @@ class MiniMaxPlayer:
         new_child = self.copy_grid(state)
         new_child[slot[0]][slot[1]] = value
         return new_child
-
-    def generate_spawn_tile(self, state: List[List[int]]) -> List[List[List[int]]]:
-        """Generates list of child states on computers turn
-
-        Args:
-            state (List[List[int]]): Game state to generate children to
-
-        Returns:
-            List[List[List[int]]]: List of possible child states
-        """
-        children = []
-        for x, row in enumerate(state):
-            for y, col in enumerate(row):
-                if col == 0:
-                    new_child = self.copy_grid(state)
-                    new_child[x][y] = 2
-                    children.append(new_child)
-
-                    new_child = self.copy_grid(state)
-                    new_child[x][y] = 4
-                    children.append(new_child)
-        return children
 
     def generate_direction(self, state: List[List[int]], direction: str) -> List[List[int]]:
         """Generates the state of the grid after players move to given direction
@@ -212,67 +137,6 @@ class MiniMaxPlayer:
 
             return rotated_state
 
-    def greedy_heuristic(self, state):
-        return gamehandler.get_grid_max_value(state)
-
-    def empty_heuristic(self, state):
-        zeroes = 0
-        for row in state:
-            for col in row:
-                if col == 0:
-                    zeroes += 1
-        return zeroes
-
-    def uniform_heuristic(self, state):
-        different_tile_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        for row in state:
-            for col in row:
-                if col == 0:
-                    continue
-                if col == 2:
-                    different_tile_values[0] += 1
-                else:
-                    if len(different_tile_values) < math.log(col, 2):
-                        for _ in range(math.log(col, 2) - len(different_tile_values)):
-                            different_tile_values.append(0)
-
-                    different_tile_values[int(math.log(col, 2)) - 1] += 1
-        return sum([x**3 for x in different_tile_values])
-
-    def monotonicity_heuristic(self, state):
-        best = -1
-        ted_state = copy.deepcopy(state)
-        for _ in range(4):  # Board is evaluated from all 4 directions
-            current = 0
-            for row_no in range(4):
-                for col_no in range(3):
-                    if ted_state[row_no][col_no] == 0:
-                        continue
-                    if ted_state[row_no][col_no] >= ted_state[row_no][col_no + 1]:
-                        current += 1
-            for col_no in range(4):
-                for row_no in range(3):
-                    if ted_state[row_no][col_no] == 0:
-                        continue
-                    if ted_state[row_no][col_no] >= ted_state[row_no + 1][col_no]:
-                        current += 1
-
-            best = best if best >= current else current
-
-            ted_state = list(zip(*ted_state[::-1]))
-        return best
-
-    def old_heuristic(self, state):
-        tile_sum = 0
-        tiles = 0
-        for row in state:
-            for col in row:
-                if col != 0:
-                    tile_sum += col
-                    tiles += 1
-
-        return tile_sum / tiles
-
     def heuristic(self, state: List[List[int]]) -> float:
         """Heuristic function to evaluate the value of a state that is not an end state
 
@@ -282,16 +146,15 @@ class MiniMaxPlayer:
         Returns:
             float: _description_
         """
-        """
-        endstate_minus = 500 if gamehandler.game_is_over(state) else 0
-        return (
-            (self.monotonicity_heuristic(state)) / 2
-            + (math.log(self.greedy_heuristic(state), 2) * 2)
-            + self.empty_heuristic(state)
-            - endstate_minus
-        )
-        """
-        return self.old_heuristic(state)
+        tile_sum = 0
+        tiles = 0
+        for row in state:
+            for col in row:
+                if col != 0:
+                    tile_sum += col
+                    tiles += 1
+
+        return tile_sum / tiles
 
     def play_round(self, state: List[List[int]]):
         """Calculates the next move for given games state
@@ -405,7 +268,7 @@ class MiniMaxPlayer:
             return self.heuristic(state)
 
         v = HUGE_NUMBER
-        empty_slots = self.get_empty_uniques(state)
+        empty_slots = self.get_empty_slots(state)
 
         for slot in empty_slots:
             for i in range(2):
