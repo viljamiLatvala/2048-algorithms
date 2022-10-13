@@ -4,7 +4,7 @@ import sys
 
 PROJECT_SRC = str(pathlib.Path(__file__).parent.parent.parent / "src")
 sys.path.append(PROJECT_SRC)
-from gamehandler.gamehandler import GameHandler
+from gamehandler.boardfunctions import GameHandler
 
 
 class TestGameHandler(unittest.TestCase):

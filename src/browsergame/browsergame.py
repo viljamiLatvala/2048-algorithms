@@ -53,7 +53,7 @@ class BrowserGame:
 
     def read_grid(self):
         """Parses the HTML representing the game grid, returns a 2-dimensional array representation"""
-        time.sleep(0.025)
+        time.sleep(0.08)
         grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
         tile_container = self.driver.find_element(By.CLASS_NAME, "tile-container")
         tiles = tile_container.find_elements(By.CLASS_NAME, "tile")

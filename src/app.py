@@ -3,7 +3,7 @@ import time
 import csv
 
 from browsergame.browsergame import BrowserGame
-from gamehandler.gamehandler import GameHandler
+from boardfunctions.boardfunctions import Boardfunctions
 from players.userinputplayer import UserInputPlayer
 from players.minimaxplayer import MiniMaxPlayer
 
@@ -65,7 +65,6 @@ if __name__ == "__main__":
     print("Thank you, onto the games then!")
     print("\n\n\n\n\n")
 
-    game_handler = GameHandler()
     game = game()
     player = player()
 
@@ -91,7 +90,7 @@ if __name__ == "__main__":
 
         game.start_game()
         game_state = game.read_grid()
-        while not game_handler.game_is_over(game_state):
+        while not Boardfunctions.game_is_over(game_state):
             next_move = player.play_round(game_state)
 
             if next_move == "Up":
@@ -106,7 +105,7 @@ if __name__ == "__main__":
             turn_count += 1
 
             game_state = game.read_grid()
-            gridmax = game_handler.get_grid_max_value(game_state)
+            gridmax = Boardfunctions.get_grid_max_value(game_state)
             if gridmax > max_score:
                 max_score = gridmax
 

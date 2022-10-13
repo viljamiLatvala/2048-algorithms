@@ -2,27 +2,19 @@ import math
 import copy
 from multiprocessing.spawn import old_main_modules
 from typing import List, Tuple
-from unittest.mock import mock_open
-from gamehandler.gamehandler import GameHandler
+from boardfunctions.boardfunctions import *
+from boardfunctions.boardfunctions import Boardfunctions
 import time
 
 HUGE_NUMBER = 999999999
-# SEARCH_DEPTH = 6
-SEARCH_DEPTH = 5
-
-gamehandler = GameHandler()
+SEARCH_DEPTH = 6
+# SEARCH_DEPTH = 5
 
 
 class MiniMaxPlayer:
     def __init__(self) -> None:
         self.round_count = 0
-        self.generated_states = 0
-        self.rotation_times = {"up": 0, "down": 0, "left": 0, "right": 0}
-        self.time_generate_direction = 0
-        self.time_get_empty_uniques = 0
-        self.time_game_over_check = 0
-        self.time_maximize = 0
-        self.time_minimize = 0
+        self.known_paths = {}
 
     def get_empty_slots(self, state: List[List[int]]) -> List[tuple]:
         """Returns a list of empty slots. Used when generating possible moves on game's turn.
@@ -41,12 +33,6 @@ class MiniMaxPlayer:
                     empty_slots.append((x, y))
         return empty_slots
 
-    def copy_grid(self, item):
-        grid = [[], [], [], []]
-        for i in range(4):
-            grid[i].extend(item[i])
-        return grid
-
     def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -> List[List[int]]:
         """Generates a child state for given state, representing a possible state created on game's turn
 
@@ -58,7 +44,7 @@ class MiniMaxPlayer:
         Returns:
             _type_: List[List[int]]
         """
-        new_child = self.copy_grid(state)
+        new_child = Boardfunctions.copy_grid(state)
         new_child[slot[0]][slot[1]] = value
         return new_child
 
@@ -72,32 +58,14 @@ class MiniMaxPlayer:
         Returns:
             List[List[int]]: Game state after moving the tiles to given direction
         """
-        new_state = []
-        rotated_grid = self.rotate_grid(state, direction)
-        for row in rotated_grid:
+        functions = {
+            "up": Boardfunctions.move_up,
+            "down": Boardfunctions.move_down,
+            "left": Boardfunctions.move_left,
+            "right": Boardfunctions.move_right,
+        }
 
-            # Create list of all present tiles
-            tiles = [col for col in row if col != 0]
-
-            # Merge same values that are back to back
-            merged_tiles = [] if len(tiles) == 0 else [tiles[0]]
-
-            # Flag to prevent merging tiles that have been already merged once
-            allow_merge = True
-            for tile in tiles[1:]:
-                if tile == merged_tiles[len(merged_tiles) - 1] and allow_merge:
-                    merged_tiles[len(merged_tiles) - 1] *= 2
-                    allow_merge = False
-                else:
-                    merged_tiles.append(tile)
-                    allow_merge = True
-
-            # Fill up rest of the row with zeroes
-            merged_tiles.extend((4 - len(merged_tiles)) * [0])
-
-            new_state.append(merged_tiles)
-
-        return self.rotate_grid(new_state, direction)
+        return functions[direction]((state, None))[0]
 
     def rotate_grid(self, state: List[List[int]], direction: str) -> List[List[int]]:
         """Rotates the game state grid to normalize it for generating directions
@@ -173,7 +141,6 @@ class MiniMaxPlayer:
         winning_direction = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
-            self.generated_states += 1
 
             if self.invalid_state(state, child, direction, lastchild, lastchildname):
                 continue
@@ -232,7 +199,7 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-        if gamehandler.game_is_over(state) or depth > SEARCH_DEPTH:
+        if Boardfunctions.game_is_over(state) or depth > SEARCH_DEPTH:
             return self.heuristic(state)
 
         v = -HUGE_NUMBER
@@ -241,7 +208,6 @@ class MiniMaxPlayer:
         lastchildname = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
-            self.generated_states += 1
             if self.invalid_state(state, child, direction, lastchild, lastchildname):
                 continue
 
@@ -264,7 +230,7 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-        if gamehandler.game_is_over(state) or depth > SEARCH_DEPTH:
+        if Boardfunctions.game_is_over(state) or depth > SEARCH_DEPTH:
             return self.heuristic(state)
 
         v = HUGE_NUMBER
@@ -278,8 +244,6 @@ class MiniMaxPlayer:
                 beta = min(beta, v)
                 if alpha >= beta:
                     return v
-
-                self.generated_states += 1
 
         if len(empty_slots) == 0:
             v = min(v, self.maximize(state, depth + 1, alpha, beta))
