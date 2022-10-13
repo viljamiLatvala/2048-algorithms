@@ -6,9 +6,8 @@ from boardfunctions.boardfunctions import *
 from boardfunctions.boardfunctions import Boardfunctions
 import time
 
-HUGE_NUMBER = 999999999
-SEARCH_DEPTH = 6
-# SEARCH_DEPTH = 5
+HUGE_NUMBER = 10e10
+SEARCH_DEPTH = 5
 
 
 class MiniMaxPlayer:
@@ -67,44 +66,6 @@ class MiniMaxPlayer:
 
         return functions[direction]((state, None))[0]
 
-    def rotate_grid(self, state: List[List[int]], direction: str) -> List[List[int]]:
-        """Rotates the game state grid to normalize it for generating directions
-
-        Args:
-            state (List[List[int]]): Game state to rotate
-            direction (str): Direction that will be generated out of the rotated state
-
-        Returns:
-            List[List[int]]: Rotated game state grid
-        """
-        if direction == "left":
-            return state
-
-        elif direction == "right":
-            return [list(reversed(row)) for row in state]
-
-        elif direction == "up":
-            rotated_state = []
-
-            for i, row in enumerate(state):
-                newrow = []
-                for j in range(len(row)):
-                    newrow.append(state[j][i])
-                rotated_state.append(newrow)
-
-            return rotated_state
-
-        elif direction == "down":
-            rotated_state = []
-
-            for i, row in enumerate(state):
-                newrow = []
-                for j in range(len(row)):
-                    newrow.insert(0, state[j][i])
-                rotated_state.insert(0, newrow)
-
-            return rotated_state
-
     def heuristic(self, state: List[List[int]]) -> float:
         """Heuristic function to evaluate the value of a state that is not an end state
 
@@ -135,61 +96,25 @@ class MiniMaxPlayer:
         """
         starttime = time.time()
         play_directions = ["up", "down", "left", "right"]
-        lastchild = None
-        lastchildname = None
+        path = ["root"]
         v = -HUGE_NUMBER
         winning_direction = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
-
-            if self.invalid_state(state, child, direction, lastchild, lastchildname):
+            if child == state:
                 continue
 
-            lastchild = child
-            lastchildname = direction
-
-            candidate_v = self.minimize(child, 1, -HUGE_NUMBER, HUGE_NUMBER)
-            if candidate_v > v:
-                v = candidate_v
-                winning_direction = direction
+            candidate_v = self.minimize(child, 1, -HUGE_NUMBER, HUGE_NUMBER, [*path, direction])
+            if candidate_v["value"] > v:
+                v = candidate_v["value"]
+                winning_direction = candidate_v["path"][1]
 
         self.round_count += 1
         print(f"{self.round_count}; {len(self.get_empty_slots(state))}; {time.time() - starttime} ")
 
-        return winning_direction.capitalize()
+        return winning_direction
 
-    def invalid_state(
-        self,
-        state: List[List[int]],
-        child: List[List[int]],
-        direction: str,
-        lastchild: List[List[int]],
-        lastchildname: str,
-    ) -> bool:
-        """Checks if the given state is relevant for minimizing. States that are identical to current state or previously minimized states are irrelevant.
-
-        Args:
-            state (List[List[int]]): Current state of the game
-            child (List[List[int]]): Generated child state, possibly to be minimized next
-            direction (str): Which direction from the current state does the child represent
-            lastchild (List[List[int]]): Previously minimized child
-            lastchildname (str): previously minimized child's direction
-
-        Returns:
-            bool: _description_
-        """
-        if child == state:
-            return True
-
-        if direction == "down" and lastchild == child[::-1]:
-            return True
-
-        if direction == "right" and lastchildname == "left" and lastchild == self.rotate_grid(child, "right"):
-            return True
-
-        return False
-
-    def maximize(self, state: List[List[int]], depth: int, alpha, beta):
+    def maximize(self, state: List[List[int]], depth: int, alpha, beta, path):
         """Maximizer function for the minmax -algorithm
 
         Args:
@@ -200,27 +125,24 @@ class MiniMaxPlayer:
             _type_: _description_
         """
         if Boardfunctions.game_is_over(state) or depth > SEARCH_DEPTH:
-            return self.heuristic(state)
+            return {"value": self.heuristic(state), "path": path}
 
         v = -HUGE_NUMBER
         play_directions = ["up", "down", "left", "right"]
-        lastchild = None
-        lastchildname = None
         for direction in play_directions:
             child = self.generate_direction(state, direction)
-            if self.invalid_state(state, child, direction, lastchild, lastchildname):
+
+            if child == state:
                 continue
 
-            lastchild = child
-            lastchildname = direction
-            minimized_candidate = self.minimize(child, depth + 1, alpha, beta)
+            minimized_candidate = self.minimize(child, depth + 1, alpha, beta, [*path, direction])["value"]
             v = max(v, minimized_candidate)
             alpha = max(alpha, v)
             if alpha >= beta:
-                return v
-        return v
+                {"value": v, "path": path}
+        return {"value": v, "path": path}
 
-    def minimize(self, state: List[List[int]], depth: int, alpha, beta):
+    def minimize(self, state: List[List[int]], depth: int, alpha, beta, path):
         """Minimizer function for the minmax -algorithm
 
         Args:
@@ -230,8 +152,10 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
+        # print(f"{path}")
+
         if Boardfunctions.game_is_over(state) or depth > SEARCH_DEPTH:
-            return self.heuristic(state)
+            return {"value": self.heuristic(state), "path": path}
 
         v = HUGE_NUMBER
         empty_slots = self.get_empty_slots(state)
@@ -239,15 +163,17 @@ class MiniMaxPlayer:
         for slot in empty_slots:
             for i in range(2):
                 child = self.generate_spawn_child(state, slot, (i + 1) * 2)
-                maximized_candidate = self.maximize(child, depth + 1, alpha, beta)
+                maximized_candidate = self.maximize(child, depth + 1, alpha, beta, [*path, f"{slot} -> {(i + 1) * 2}"])[
+                    "value"
+                ]
                 v = min(v, maximized_candidate)
                 beta = min(beta, v)
                 if alpha >= beta:
-                    return v
+                    return {"value": v, "path": path}
 
         if len(empty_slots) == 0:
-            v = min(v, self.maximize(state, depth + 1, alpha, beta))
+            v = min(v, self.maximize(state, depth + 1, alpha, beta))["value"]
             beta = min(beta, v)
             if alpha >= beta:
-                return v
-        return v
+                return {"value": v, "path": path}
+        return {"value": v, "path": path}

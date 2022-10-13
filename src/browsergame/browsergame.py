@@ -15,12 +15,13 @@ class BrowserGame:
 
     def __init__(self):
         self.url = "https://play2048.co/"
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+        self.driver = None
         self.game = None
 
     def start_game(self):
         """Open browser an navigate to games url. Accept cookie consent"""
 
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
         self.driver.get(self.url)
         try:
             cookie_prompt = self.driver.find_element(By.ID, "ez-accept-all")
@@ -33,22 +34,25 @@ class BrowserGame:
     def quit_game(self):
         """Closes the controlled web browser and reassigns a new webdriver to be ready for possible new games"""
         self.driver.close()
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
     def move_up(self):
         """Commands the game to move up"""
+        self.game = self.driver.find_element(By.TAG_NAME, "body")
         self.game.send_keys(Keys.ARROW_UP)
 
     def move_down(self):
         """Commands the game to move down"""
+        self.game = self.driver.find_element(By.TAG_NAME, "body")
         self.game.send_keys(Keys.ARROW_DOWN)
 
     def move_left(self):
         """Commands the game to move left"""
+        self.game = self.driver.find_element(By.TAG_NAME, "body")
         self.game.send_keys(Keys.ARROW_LEFT)
 
     def move_right(self):
         """Commands the game to move right"""
+        self.game = self.driver.find_element(By.TAG_NAME, "body")
         self.game.send_keys(Keys.ARROW_RIGHT)
 
     def read_grid(self):

@@ -93,13 +93,15 @@ if __name__ == "__main__":
         while not Boardfunctions.game_is_over(game_state):
             next_move = player.play_round(game_state)
 
-            if next_move == "Up":
+            print(next_move)
+
+            if next_move == "up":
                 game.move_up()
-            elif next_move == "Down":
+            elif next_move == "down":
                 game.move_down()
-            elif next_move == "Left":
+            elif next_move == "left":
                 game.move_left()
-            elif next_move == "Right":
+            elif next_move == "right":
                 game.move_right()
 
             turn_count += 1
