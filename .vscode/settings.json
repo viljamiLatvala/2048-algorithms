@@ -1,12 +1,7 @@
 {
-    "python.analysis.extraPaths": [
-        "./2048-algorithms",
-        "./src"
-    ],
-    "python.linting.pylintEnabled": true,
-    "python.linting.enabled": true,
-    "python.linting.pycodestyleEnabled": true,
-    "python.autoComplete.extraPaths": [
-        "./2048-algorithms"
-    ]
+  "python.analysis.extraPaths": ["./2048-algorithms", "./src"],
+  "python.linting.pylintEnabled": true,
+  "python.linting.enabled": false,
+  "python.linting.pycodestyleEnabled": true,
+  "python.autoComplete.extraPaths": ["./2048-algorithms"]
 }
