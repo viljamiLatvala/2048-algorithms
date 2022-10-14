@@ -3,5 +3,6 @@
   "python.linting.pylintEnabled": true,
   "python.linting.enabled": false,
   "python.linting.pycodestyleEnabled": true,
-  "python.autoComplete.extraPaths": ["./2048-algorithms"]
+  "python.autoComplete.extraPaths": ["./2048-algorithms"],
+  "liveServer.settings.port": 5501
 }

@@ -95,7 +95,6 @@ if __name__ == "__main__":
             #    break
 
             next_move = player.play_round(game_state)
-            print(next_move)
 
             if next_move == "up":
                 game.move_up()
