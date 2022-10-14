@@ -91,8 +91,10 @@ if __name__ == "__main__":
         game.start_game()
         game_state = game.read_grid()
         while not Boardfunctions.game_is_over(game_state):
-            next_move = player.play_round(game_state)
+            # if turn_count > 0:
+            #    break
 
+            next_move = player.play_round(game_state)
             print(next_move)
 
             if next_move == "up":

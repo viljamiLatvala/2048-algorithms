@@ -1,13 +1,12 @@
-import math
-import copy
-from multiprocessing.spawn import old_main_modules
 from typing import List, Tuple
 from boardfunctions.boardfunctions import *
 from boardfunctions.boardfunctions import Boardfunctions
 import time
 
-HUGE_NUMBER = 10e10
-SEARCH_DEPTH = 5
+from players.minimaxplayer2 import maximize
+
+INFINITY = float("inf")
+SEARCH_DEPTH = 7
 
 
 class MiniMaxPlayer:
@@ -15,7 +14,7 @@ class MiniMaxPlayer:
         self.round_count = 0
         self.known_paths = {}
 
-    def get_empty_slots(self, state: List[List[int]]) -> List[tuple]:
+    def get_empties(self, state: List[List[int]]) -> List[tuple]:
         """Returns a list of empty slots. Used when generating possible moves on game's turn.
         Currently not using this function but get_empty_uniques instead.
 
@@ -25,12 +24,12 @@ class MiniMaxPlayer:
         Returns:
             List[tuple]: List of X,Y coordinates representing empty slots on the game grid.
         """
-        empty_slots = []
+        empties = []
         for x in range(len(state)):
             for y in range(len(state[0])):
                 if state[x][y] == 0:
-                    empty_slots.append((x, y))
-        return empty_slots
+                    empties.append((x, y))
+        return empties
 
     def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -> List[List[int]]:
         """Generates a child state for given state, representing a possible state created on game's turn
@@ -95,24 +94,10 @@ class MiniMaxPlayer:
             str: Direction to play ("left", "right", "up", "down")
         """
         starttime = time.time()
-        play_directions = ["up", "down", "left", "right"]
-        path = ["root"]
-        v = -HUGE_NUMBER
-        winning_direction = None
-        for direction in play_directions:
-            child = self.generate_direction(state, direction)
-            if child == state:
-                continue
-
-            candidate_v = self.minimize(child, 1, -HUGE_NUMBER, HUGE_NUMBER, [*path, direction])
-            if candidate_v["value"] > v:
-                v = candidate_v["value"]
-                winning_direction = candidate_v["path"][1]
-
         self.round_count += 1
-        print(f"{self.round_count}; {len(self.get_empty_slots(state))}; {time.time() - starttime} ")
-
-        return winning_direction
+        maximized = self.maximize(state, 0, -INFINITY, INFINITY, ["root"])
+        print(f"{self.round_count}; {len(self.get_empties(state))}; {time.time() - starttime} ")
+        return maximized["path"][1]
 
     def maximize(self, state: List[List[int]], depth: int, alpha, beta, path):
         """Maximizer function for the minmax -algorithm
@@ -124,10 +109,12 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
+
         if Boardfunctions.game_is_over(state) or depth > SEARCH_DEPTH:
             return {"value": self.heuristic(state), "path": path}
 
-        v = -HUGE_NUMBER
+        maximized = {"value": -INFINITY, "path": path}
+
         play_directions = ["up", "down", "left", "right"]
         for direction in play_directions:
             child = self.generate_direction(state, direction)
@@ -135,12 +122,16 @@ class MiniMaxPlayer:
             if child == state:
                 continue
 
-            minimized_candidate = self.minimize(child, depth + 1, alpha, beta, [*path, direction])["value"]
-            v = max(v, minimized_candidate)
-            alpha = max(alpha, v)
+            candidate = self.minimize(child, depth + 1, alpha, beta, [*path, direction])
+
+            if candidate["value"] > maximized["value"]:
+                maximized = candidate
+
+            alpha = max(alpha, maximized["value"])
             if alpha >= beta:
-                {"value": v, "path": path}
-        return {"value": v, "path": path}
+                return maximized
+
+        return maximized
 
     def minimize(self, state: List[List[int]], depth: int, alpha, beta, path):
         """Minimizer function for the minmax -algorithm
@@ -152,28 +143,34 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-        # print(f"{path}")
-
         if Boardfunctions.game_is_over(state) or depth > SEARCH_DEPTH:
             return {"value": self.heuristic(state), "path": path}
 
-        v = HUGE_NUMBER
-        empty_slots = self.get_empty_slots(state)
+        minimized = {"value": INFINITY, "path": path}
+        empties = self.get_empties(state)
 
-        for slot in empty_slots:
+        # As long as there are empty slots
+        for slot in empties:
             for i in range(2):
                 child = self.generate_spawn_child(state, slot, (i + 1) * 2)
-                maximized_candidate = self.maximize(child, depth + 1, alpha, beta, [*path, f"{slot} -> {(i + 1) * 2}"])[
-                    "value"
-                ]
-                v = min(v, maximized_candidate)
-                beta = min(beta, v)
-                if alpha >= beta:
-                    return {"value": v, "path": path}
+                candidate = self.maximize(child, depth + 1, alpha, beta, [*path, f"{slot} -> {(i + 1) * 2}"])
 
-        if len(empty_slots) == 0:
-            v = min(v, self.maximize(state, depth + 1, alpha, beta))["value"]
-            beta = min(beta, v)
+                if candidate["value"] < minimized["value"]:
+                    minimized = candidate
+
+                beta = min(beta, minimized["value"])
+                if alpha >= beta:
+                    return minimized
+
+        # If the board is full but still playable
+        if len(empties) == 0:
+            candidate = self.maximize(state, depth + 1, alpha, beta, path)
+
+            if candidate["value"] < minimized["value"]:
+                minimized = candidate
+
+            beta = min(beta, minimized["value"])
             if alpha >= beta:
-                return {"value": v, "path": path}
-        return {"value": v, "path": path}
+                return minimized
+
+        return minimized
