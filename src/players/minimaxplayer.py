@@ -11,6 +11,7 @@ class MiniMaxPlayer:
     def __init__(self) -> None:
         self.round_count = 0
         self.known_paths = {}
+        self.last_best = "up"
 
     def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -> List[List[int]]:
         """Generates a child state for given state, representing a possible state created on game's turn
@@ -61,6 +62,7 @@ class MiniMaxPlayer:
         while elapsed < 1:
             maximized = self.maximize(state, 0, maxdepth, -INFINITY, INFINITY, ["root"])
             maxdepth += 1
+            self.last_best = maximized["path"][1]
             elapsed += time.time() - starttime
 
         # Write html
@@ -68,10 +70,9 @@ class MiniMaxPlayer:
         # write_html(form_graph(states), f"turn_{self.round_count}")
 
         self.round_count += 1
-        elapsed = "%.2f" % elapsed
         decision = maximized["path"][1]
         print(
-            f"Round: {self.round_count} | Move: {decision.ljust(5,' ')} | Time spent: {elapsed}s | Reached depth: {maxdepth}"
+            f"Round: {self.round_count} | Move: {decision.ljust(5,' ')} | Time spent: {'%.2f' % elapsed}s | Reached depth: {maxdepth}"
         )
         return decision
 
@@ -93,8 +94,8 @@ class MiniMaxPlayer:
 
         maximized = {"value": -INFINITY, "path": path}
         directions = {"up": board.move_up, "down": board.move_down, "left": board.move_left, "right": board.move_right}
-
-        for direction, move in directions.items():
+        last_best_function = directions.pop(self.last_best)
+        for direction, move in [(self.last_best, last_best_function), *directions.items()]:
             child, empties = move((state, None))
 
             if child == state:
