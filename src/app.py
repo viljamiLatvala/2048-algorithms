@@ -1,7 +1,4 @@
 import os
-import time
-import csv
-
 from browsergame.browsergame import BrowserGame
 from boardfunctions.boardfunctions import Boardfunctions
 from players.userinputplayer import UserInputPlayer
@@ -68,21 +65,6 @@ if __name__ == "__main__":
     game = game()
     player = player()
 
-    logfile = open("logs.csv", "a", encoding="utf-8")
-    logwriter = csv.writer(logfile)
-    logheaders = [
-        "event",
-        "timestamp",
-        "player",
-        "game",
-        "run_id",
-        "highest_tile",
-        "moves_count",
-        "time_spent",
-        "game_state",
-    ]
-    logwriter.writerow(logheaders)
-
     for game_no in range(games_to_play):
 
         max_score = 0
@@ -91,8 +73,6 @@ if __name__ == "__main__":
         game.start_game()
         game_state = game.read_grid()
         while not Boardfunctions.game_is_over(game_state):
-            # if turn_count > 0:
-            #    break
 
             next_move = player.play_round(game_state)
 
@@ -114,4 +94,3 @@ if __name__ == "__main__":
 
         game.quit_game()
         print(f"Game {game_no + 1}/{games_to_play} over! Score: {max_score}, played_turns: {turn_count}")
-    logfile.close()

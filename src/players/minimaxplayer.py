@@ -4,7 +4,6 @@ from boardfunctions.boardtree import *
 import time
 
 INFINITY = float("inf")
-SEARCH_DEPTH = 4
 
 
 class MiniMaxPlayer:
@@ -37,15 +36,29 @@ class MiniMaxPlayer:
         Returns:
             float: _description_
         """
+        if board.game_is_over(state):
+            return -INFINITY
+
         tile_sum = 0
+        tile_diff = 0
         tiles = 0
+
         for row in state:
+            last_tile = None
             for col in row:
                 if col != 0:
-                    tile_sum += col
                     tiles += 1
+                    tile_diff += 0 if last_tile is None else abs(col - last_tile)
+                    last_tile = col
 
-        return tile_sum / tiles
+        for y in range(4):
+            last_tile = None
+            for x in range(4):
+                if state[x][y] != 0:
+                    tile_diff += 0 if last_tile is None else abs(state[x][y] - last_tile)
+                    last_tile = state[x][y]
+
+        return -tile_diff * tiles
 
     def play_round(self, state: List[List[int]]):
         """Calculates the next move for given games state
@@ -59,9 +72,10 @@ class MiniMaxPlayer:
         starttime = time.time()
         elapsed = 0
         maxdepth = 2
-        while elapsed < 1:
+        while elapsed < 0.2:
             maximized = self.maximize(state, 0, maxdepth, -INFINITY, INFINITY, ["root"])
             maxdepth += 1
+            print(maximized["path"])
             self.last_best = maximized["path"][1]
             elapsed += time.time() - starttime
 
@@ -90,6 +104,8 @@ class MiniMaxPlayer:
         self.known_paths[f"{path}"] = {"board": state, "path": path}
 
         if board.game_is_over(state) or depth > maxdepth:
+            if board.game_is_over(state):
+                print("GAME IS OVER")
             return {"value": self.heuristic(state), "path": path}
 
         maximized = {"value": -INFINITY, "path": path}
@@ -101,7 +117,7 @@ class MiniMaxPlayer:
             if child == state:
                 continue
 
-            candidate = self.minimize(child, empties, depth + 1, maxdepth, alpha, beta, [*path, direction])
+            candidate = self.minimize(child, empties, depth, maxdepth, alpha, beta, [*path, direction])
 
             if candidate["value"] > maximized["value"]:
                 maximized = candidate
@@ -145,6 +161,7 @@ class MiniMaxPlayer:
 
         # If the board is full but still playable
         if len(empties) == 0:
+            print("BOARD FULL")
             candidate = self.maximize(state, depth + 1, maxdepth, alpha, beta, path)
 
             if candidate["value"] < minimized["value"]:
