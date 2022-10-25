@@ -11,6 +11,7 @@ class MiniMaxPlayer:
         self.round_count = 0
         self.known_paths = {}
         self.last_best = "up"
+        self.debug = []
 
     def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -> List[List[int]]:
         """Generates a child state for given state, representing a possible state created on game's turn
@@ -37,9 +38,8 @@ class MiniMaxPlayer:
             float: _description_
         """
         if board.game_is_over(state):
-            return -INFINITY
+            return -999999
 
-        tile_sum = 0
         tile_diff = 0
         tiles = 0
 
@@ -60,6 +60,10 @@ class MiniMaxPlayer:
 
         return -tile_diff * tiles
 
+    def logwrite(self, text):
+        with open("logs.txt", "a") as f:
+            f.write(text + "\n")
+
     def play_round(self, state: List[List[int]]):
         """Calculates the next move for given games state
 
@@ -69,16 +73,18 @@ class MiniMaxPlayer:
         Returns:
             str: Direction to play ("left", "right", "up", "down")
         """
+        self.debug = []
         starttime = time.time()
         elapsed = 0
         maxdepth = 2
-        while elapsed < 0.2:
+        while elapsed < 0.30:
             maximized = self.maximize(state, 0, maxdepth, -INFINITY, INFINITY, ["root"])
+            # self.logwrite(f"Maximized {state} , {maximized['path']}, Value {maximized['value']}")
             maxdepth += 1
-            print(maximized["path"])
-            self.last_best = maximized["path"][1]
-            elapsed += time.time() - starttime
 
+            self.last_best = maximized["path"][1]
+
+            elapsed += time.time() - starttime
         # Write html
         # states = list(self.known_paths.values())
         # write_html(form_graph(states), f"turn_{self.round_count}")
@@ -100,24 +106,24 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-
+        # print("Maximizer " + str(state))
         self.known_paths[f"{path}"] = {"board": state, "path": path}
 
         if board.game_is_over(state) or depth > maxdepth:
-            if board.game_is_over(state):
-                print("GAME IS OVER")
             return {"value": self.heuristic(state), "path": path}
 
         maximized = {"value": -INFINITY, "path": path}
         directions = {"up": board.move_up, "down": board.move_down, "left": board.move_left, "right": board.move_right}
         last_best_function = directions.pop(self.last_best)
         for direction, move in [(self.last_best, last_best_function), *directions.items()]:
+            # print(direction)
             child, empties = move((state, None))
 
             if child == state:
                 continue
 
             candidate = self.minimize(child, empties, depth, maxdepth, alpha, beta, [*path, direction])
+            # self.logwrite(f"Best from level {depth} maximize: {candidate}")
 
             if candidate["value"] > maximized["value"]:
                 maximized = candidate
@@ -138,7 +144,7 @@ class MiniMaxPlayer:
         Returns:
             _type_: _description_
         """
-
+        # print("Minimizer: " + str(state))
         self.known_paths[f"{path}"] = {"board": state, "path": path}
 
         if board.game_is_over(state) or depth > maxdepth:
@@ -161,10 +167,9 @@ class MiniMaxPlayer:
 
         # If the board is full but still playable
         if len(empties) == 0:
-            print("BOARD FULL")
             candidate = self.maximize(state, depth + 1, maxdepth, alpha, beta, path)
 
-            if candidate["value"] < minimized["value"]:
+            if candidate["value"] <= minimized["value"]:
                 minimized = candidate
 
             beta = min(beta, minimized["value"])

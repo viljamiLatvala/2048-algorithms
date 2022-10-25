@@ -122,7 +122,6 @@ class Boardfunctions:
                 else:
                     placed += 1
                     newstate[x][placed] = col
-                    can_merge = not can_merge
             for i in range(placed + 1, 4):
                 empties.append((x, i))
         return (newstate, empties)
@@ -146,7 +145,6 @@ class Boardfunctions:
                 else:
                     placed -= 1
                     newstate[x][placed] = col
-                    can_merge = not can_merge
             for i in range(0, placed):
                 empties.append((x, i))
         return (newstate, empties)
@@ -159,18 +157,23 @@ class Boardfunctions:
             can_merge = True
             for x in range(4):
                 col = state[0][x][y]
+                # print(f"x: {x} y: {y}, value: {col}", end=" ")
                 if col == 0:
                     continue
                 if placed == -1:
+                    # print(" | First tile to place", end=" ")
                     newstate[0][y] = col
                     placed += 1
+                    # print(f" | Set placed to {placed}", end=" ")
                 elif newstate[placed][y] == col and can_merge:
+                    # print(f" | elif", end=" ")
                     newstate[placed][y] *= 2
                     can_merge = not can_merge
                 else:
+                    # print(f" | else", end=" ")
                     placed += 1
                     newstate[placed][y] = col
-                    can_merge = not can_merge
+                # print()
             for i in range(placed + 1, 4):
                 empties.append((i, y))
         return (newstate, empties)
@@ -194,7 +197,6 @@ class Boardfunctions:
                 else:
                     placed -= 1
                     newstate[placed][y] = col
-                    can_merge = not can_merge
             for i in range(0, placed):
                 empties.append((i, y))
         return (newstate, empties)

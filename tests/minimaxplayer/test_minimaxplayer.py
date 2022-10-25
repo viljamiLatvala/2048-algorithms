@@ -128,8 +128,14 @@ class TestMiniMaxPlayer(unittest.TestCase):
         grid = [[1, 10], [5, 5]]
         print(player.play_round(grid))
 
+    def test_problem_grid(self):
+        player = MiniMaxPlayer()
+        grid = [[4, 2, 8, 2], [8, 32, 16, 4], [2, 256, 16, 4], [4, 16, 4, 1024]]
+        # grid = [[512, 2, 2, 4], [32, 128, 32, 16], [4, 4, 64, 16], [0, 16, 2, 4]]
+        print(player.play_round(grid))
+
 
 if __name__ == "__main__":
     # unittest.main()
     ut = TestMiniMaxPlayer()
-    ut.test_grid_similarity2()
+    ut.test_problem_grid()

@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import NoSuchElementException
 
@@ -20,8 +21,9 @@ class BrowserGame:
 
     def start_game(self):
         """Open browser an navigate to games url. Accept cookie consent"""
-
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+        chrome_options = Options()
+        chrome_options.add_argument("--log-level=3")
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
         self.driver.get(self.url)
         try:
             cookie_prompt = self.driver.find_element(By.ID, "ez-accept-all")
