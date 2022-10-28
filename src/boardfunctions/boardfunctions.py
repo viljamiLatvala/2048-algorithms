@@ -59,51 +59,23 @@ class Boardfunctions:
         return True
 
     def copy_grid(item):
+        """Creates a deep copy of a game grid"""
         item = (item, [])
         grid = [[], [], [], []]
         for i in range(4):
             grid[i].extend(item[0][i])
 
-        empties = []
-        for i in item[1]:
-            empties.append(i)
-        # return (grid, empties)
         return grid
 
-    def get_available_merges(grid: List[List[int]]) -> int:
-        """Counts and returns available merges in given state. Created for using to sort created child states to get more efficient A/B pruning but currently not used since not found performant.
+    def move_left(state):
+        """Simulates a move to left on the game grid, returns the game grid after the move and a list of empty cells
 
         Args:
-            grid (List[List[int]]): Game's state
+            state: Games state to simulate move on
 
         Returns:
-            int: Count of available merges
+            A tulpe containing the new state and list of empty cells
         """
-        merges = 0
-
-        for i in range(len(grid)):
-            for j in range(len(grid[i])):
-                # Check if there are available merges
-                # Left
-                if j > 0:
-                    if grid[i][j] == grid[i][j - 1]:
-                        merges += 1
-                # Right
-                if j < len(grid[i]) - 1:
-                    if grid[i][j] == grid[i][j + 1]:
-                        merges += 1
-                # Above
-                if i > 0:
-                    if grid[i][j] == grid[i - 1][j]:
-                        merges += 1
-                # Below
-                if i < len(grid) - 1:
-                    if grid[i][j] == grid[i + 1][j]:
-                        merges += 1
-
-        return merges
-
-    def move_left(state):
         newstate = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
         empties = []
         for x in range(4):
@@ -127,6 +99,14 @@ class Boardfunctions:
         return (newstate, empties)
 
     def move_right(state):
+        """Simulates a move to right on the game grid, returns the game grid after the move and a list of empty cells
+
+        Args:
+            state: Games state to simulate move on
+
+        Returns:
+            A tulpe containing the new state and list of empty cells
+        """
         newstate = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
         empties = []
         for x in range(4):
@@ -150,6 +130,14 @@ class Boardfunctions:
         return (newstate, empties)
 
     def move_up(state):
+        """Simulates a move to up on the game grid, returns the game grid after the move and a list of empty cells
+
+        Args:
+            state: Games state to simulate move on
+
+        Returns:
+            A tulpe containing the new state and list of empty cells
+        """
         newstate = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
         empties = []
         for y in range(4):
@@ -179,6 +167,14 @@ class Boardfunctions:
         return (newstate, empties)
 
     def move_down(state):
+        """Simulates a move to down on the game grid, returns the game grid after the move and a list of empty cells
+
+        Args:
+            state: Games state to simulate move on
+
+        Returns:
+            A tulpe containing the new state and list of empty cells
+        """
         newstate = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
         empties = []
         for y in range(4):

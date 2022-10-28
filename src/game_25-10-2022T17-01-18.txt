@@ -1,4 +1,0 @@
-Round: 1 | Move: down  | Time spent: 0.72s | Reached depth: 3 | Max tile: 2 | state: [[0, 0, 0, 2], [0, 0, 0, 0], [2, 0, 0, 0], [0, 0, 0, 0]]
-Round: 2 | Move: down  | Time spent: 0.36s | Reached depth: 3 | Max tile: 2 | state: [[0, 0, 0, 0], [0, 0, 0, 0], [2, 0, 0, 0], [2, 0, 0, 2]]
-Round: 3 | Move: down  | Time spent: 0.34s | Reached depth: 3 | Max tile: 4 | state: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [4, 0, 0, 2]]
-Round: 4 | Move: down  | Time spent: 0.35s | Reached depth: 3 | Max tile: 4 | state: [[2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [4, 0, 2, 2]]

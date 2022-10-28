@@ -2,6 +2,7 @@ from typing import List, Tuple
 from boardfunctions.boardfunctions import Boardfunctions as board
 from boardfunctions.boardtree import *
 import time
+from pathlib import Path
 
 INFINITY = float("inf")
 
@@ -22,7 +23,7 @@ class MiniMaxPlayer:
             value (int): value of the new tile
 
         Returns:
-            _type_: List[List[int]]
+            List[List[int]]: The game state after spawning the new tile
         """
         new_child = board.copy_grid(state)
         new_child[slot[0]][slot[1]] = value
@@ -32,10 +33,10 @@ class MiniMaxPlayer:
         """Heuristic function to evaluate the value of a state that is not an end state
 
         Args:
-            state (List[List[int]]): _description_
+            state (List[List[int]]): games state
 
         Returns:
-            float: _description_
+            float: evaluated value of the game
         """
         if board.game_is_over(state):
             return -999999
@@ -61,10 +62,11 @@ class MiniMaxPlayer:
         return -tile_diff * tiles
 
     def logwrite(self, text):
-        with open(self.filename, "a") as f:
+        writepath = Path(__file__).parents[2] / "logs" / self.filename
+        with open(writepath, "a") as f:
             f.write(text + "\n")
 
-    def play_round(self, state: List[List[int]]):
+    def play_round(self, state: List[List[int]], iterative_deepening: True, id_timelimit: 0.3, id_skippedturns: 0):
         """Calculates the next move for given games state
 
         Args:
@@ -76,7 +78,7 @@ class MiniMaxPlayer:
         starttime = time.time()
         elapsed = 0
         maxdepth = 2
-        while elapsed < 0.30:
+        while elapsed < id_timelimit:
             maximized = self.maximize(state, 0, maxdepth, -INFINITY, INFINITY, ["root"])
             # self.logwrite(f"Maximized {state} , {maximized['path']}, Value {maximized['value']}")
             maxdepth += 1
@@ -87,7 +89,7 @@ class MiniMaxPlayer:
             # Write html
             # states = list(self.known_paths.values())
             # write_html(form_graph(states), f"turn_{self.round_count}")
-            if self.round_count < 250:
+            if self.round_count < id_skippedturns or not iterative_deepening:
                 break
 
         self.round_count += 1
@@ -106,9 +108,13 @@ class MiniMaxPlayer:
         Args:
             state (List[List[int]]): Game state to maximize
             depth (int): Current depth of search
+            maxdepth(int): The depth to which continue the search
+            alpha(int): Alpha value for alpha-beta pruning
+            beta(int): Beta value for alpha-beta pruning
+            path(str): a string describing the path on a gametree leading to this state
 
         Returns:
-            _type_: _description_
+            dict: The maximized state of the game tree and the path that leads there
         """
         # print("Maximizer " + str(state))
         self.known_paths[f"{path}"] = {"board": state, "path": path}
@@ -144,9 +150,13 @@ class MiniMaxPlayer:
         Args:
             state (List[List[int]]): Game state to minimize
             depth (int): Current depth of search
+            maxdepth(int): The depth to which continue the search
+            alpha(int): Alpha value for alpha-beta pruning
+            beta(int): Beta value for alpha-beta pruning
+            path(str): a string describing the path on a gametree leading to this state
 
         Returns:
-            _type_: _description_
+            dict: The maximized state of the game tree and the path that leads there
         """
         # print("Minimizer: " + str(state))
         self.known_paths[f"{path}"] = {"board": state, "path": path}
