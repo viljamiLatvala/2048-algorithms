@@ -132,4 +132,6 @@ dmypy.json
 sandbox.py
 
 #Gametrees
-gametrees/ 
+gametrees/
+#Performance logs
+logs/
