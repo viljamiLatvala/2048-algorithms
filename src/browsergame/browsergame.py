@@ -31,6 +31,13 @@ class BrowserGame:
         except NoSuchElementException:
             pass
 
+        self.driver.execute_script(
+            """
+            var ads = document.querySelectorAll(".ezoic-ad");
+            ads.forEach(ad => ad.parentNode.removeChild(ad));
+            """
+        )
+
         self.game = self.driver.find_element(By.TAG_NAME, "body")
 
     def quit_game(self):

@@ -55,7 +55,6 @@ if __name__ == "__main__":
     print("First, choose how you wish to run the application", end="\n\n")
     print("Select which game implementation to play on:")
 
-    # [TODO] could also just use static classes?
     game = game_selection()
     player = player_selection()
     games_to_play = game_qty_selection()

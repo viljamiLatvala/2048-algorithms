@@ -11,7 +11,7 @@ class MiniMaxPlayer:
         self.round_count = 0
         self.known_paths = {}
         self.last_best = "up"
-        self.debug = []
+        self.filename = f"game_{time.strftime('%d-%m-%YT%H-%M-%S')}.txt"
 
     def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -> List[List[int]]:
         """Generates a child state for given state, representing a possible state created on game's turn
@@ -61,7 +61,7 @@ class MiniMaxPlayer:
         return -tile_diff * tiles
 
     def logwrite(self, text):
-        with open("logs.txt", "a") as f:
+        with open(self.filename, "a") as f:
             f.write(text + "\n")
 
     def play_round(self, state: List[List[int]]):
@@ -73,7 +73,6 @@ class MiniMaxPlayer:
         Returns:
             str: Direction to play ("left", "right", "up", "down")
         """
-        self.debug = []
         starttime = time.time()
         elapsed = 0
         maxdepth = 2
@@ -85,12 +84,17 @@ class MiniMaxPlayer:
             self.last_best = maximized["path"][1]
 
             elapsed += time.time() - starttime
-        # Write html
-        # states = list(self.known_paths.values())
-        # write_html(form_graph(states), f"turn_{self.round_count}")
+            # Write html
+            # states = list(self.known_paths.values())
+            # write_html(form_graph(states), f"turn_{self.round_count}")
+            if self.round_count < 250:
+                break
 
         self.round_count += 1
         decision = maximized["path"][1]
+        self.logwrite(
+            f"Round: {self.round_count} | Move: {decision.ljust(5,' ')} | Time spent: {'%.2f' % elapsed}s | Reached depth: {maxdepth} | Max tile: {board.get_grid_max_value(state)} | state: {state}"
+        )
         print(
             f"Round: {self.round_count} | Move: {decision.ljust(5,' ')} | Time spent: {'%.2f' % elapsed}s | Reached depth: {maxdepth}"
         )

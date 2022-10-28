@@ -6,10 +6,10 @@ AI bot for the game 2048. Created for University of Helsinki's course TKT20010: 
 
 - [Week 1](documentation/weekly_progress_reports/week1.md)
 - [Week 2](documentation/weekly_progress_reports/week2.md)
-- [Week 1](documentation/weekly_progress_reports/week3.md)
-- [Week 2](documentation/weekly_progress_reports/week4.md)
-- [Week 1](documentation/weekly_progress_reports/week5.md)
-- [Week 2](documentation/weekly_progress_reports/week6.md)
+- [Week 3](documentation/weekly_progress_reports/week3.md)
+- [Week 4](documentation/weekly_progress_reports/week4.md)
+- [Week 5](documentation/weekly_progress_reports/week5.md)
+- [Week 6](documentation/weekly_progress_reports/week6.md)
 
 ## Other documentation
 
