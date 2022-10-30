@@ -34,8 +34,8 @@ Testing was done by playing 17 games with the algorithm, having the iterative de
 
 The speed of the algorithm is influenced by the depth of the gametrees search. When looking at the average times to calculate the move to play for different depths, we can see that the time consumed does not increase exponentially as one could assume from Minimax's time complexity O(m^d) where m is the branching factor and d is the search depth. From depth 3 to 4 this seems to be true but going deeper than that the search times seem to get lower. This is due to the time restriction which ensures that if calculating best move to depth n exceeds 0.3s, the next depth n+1 won't be calculated. After the first 800 moves where the iterativeness is skipped, majority of moves are calculated to depth 4 but only gametrees where Alpha-Beta pruning reduces the size of generated states drastically ever reach depth 5 and up. If the time restriction would be exceeded the exponential growth in time used would be more visible in higher depths also.
 
-![](documentation/graphs/depthtime.png)
-![](documentation/graphs/depthtime2.png)
+![img](/documentation/graphs/depthtime.png)
+![img](/documentation/graphs/depthtime2.png)
 
 ### Game Performance
 
@@ -43,5 +43,5 @@ The algorithm managed to get the highest tile value of 2048 13 times, and a valu
 
 On average, the algorithm survived to play 1658 rounds of the game. One game survived significantly longer than the average, for 5484 rounds.
 
-![](documentation/graphs/rounds.png)
-![](documentation/graphs/score.png)
+![img](/documentation/graphs/rounds.png)
+![img](/documentation/graphs/score.png)
