@@ -28,34 +28,20 @@ This test can be replicated by running /src/app.py, selecting UserInputPlayer as
 
 ## Performance Testing
 
+Testing was done by playing 17 games with the algorithm, having the iterative deepening kick in after 800 moves and progressing to the next search depth if accumulated time is below 0.3 seconds
+
 ### Algorithm Speed
 
-For the algorithm to be sensible, it should be able to make a move in relatively short period of time. As a rule of thumb I'd say 1 second per move. At its current state the algorithm is capable of adhering to that constraint with search depth of 6. This of course varies depending on computer used. By playing three games on depths 4,5 & 6 we get following average times per move:
+The speed of the algorithm is influenced by the depth of the gametrees search. When looking at the average times to calculate the move to play for different depths, we can see that the time consumed does not increase exponentially as one could assume from Minimax's time complexity O(m^d) where m is the branching factor and d is the search depth. From depth 3 to 4 this seems to be true but going deeper than that the search times seem to get lower. This is due to the time restriction which ensures that if calculating best move to depth n exceeds 0.3s, the next depth n+1 won't be calculated. After the first 800 moves where the iterativeness is skipped, majority of moves are calculated to depth 4 but only gametrees where Alpha-Beta pruning reduces the size of generated states drastically ever reach depth 5 and up. If the time restriction would be exceeded the exponential growth in time used would be more visible in higher depths also.
 
-| Depth | AVG time per move (sec) |
-| ----- | ----------------------- |
-| 4     | 0.039                   |
-| 5     | 0.201                   |
-| 6     | 0.684                   |
-
-Worst case time complexity of minimax should be O(s^d) where s is the number of possible moves from each state and d is the depth of the search. For 2048 the exact quantity of possible moves varies based on the state of the grid, and there are optimizations in the application to reduce the number of moves if they are identical in terms of effect to the next states. The number of possible moves decreases the fuller the game grid gets, and when there are only few tiles left the algorithm is more likely to reach end states. The number of round played (player moves) for different depths were the following:
-
-| Depth | AVG moves per game |
-| ----- | ------------------ |
-| 4     | 507.3              |
-| 5     | 538.7              |
-| 6     | 639                |
-
-The longer the game is the more moves are made on fuller grids. For this reason the actual consumed time does not rise as steeply as the theoretical time complexity
+![](documentation/graphs/depthtime.png)
+![](documentation/graphs/depthtime2.png)
 
 ### Game Performance
 
-With the limited conducted play testing it would seem that the higher the search depth, the longer the AI survives in the game. Scorewise it is hard to compare the performance due to the low count of recorded games in thus far. In the played 3 games with depths 4,5 & 6 each the highest achieved tiles have been the following
+The algorithm managed to get the highest tile value of 2048 13 times, and a value of 1024 4 times.
 
-| Depth | 256 | 512 | 1024 |
-| ----- | --- | --- | ---- |
-| 4     | 2   | 0   | 1    |
-| 5     |     | 2   | 1    |
-| 6     | 0   | 2   | 1    |
+On average, the algorithm survived to play 1658 rounds of the game. One game survived significantly longer than the average, for 5484 rounds.
 
-So far the algorithm is not reaching very high scores. In not recorded tests the score of 2048 was reached with depths 5 and 6, but more testing is needed. In addition to increasing the search depth, also the heuristic function should be adjusted.
+![](documentation/graphs/rounds.png)
+![](documentation/graphs/score.png)

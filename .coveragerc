@@ -2,6 +2,7 @@
 [run]
 omit = 
     */__init__.py
+    */boardtree.py
     */test_[a-zA-Z0-9_]*.py
 
 

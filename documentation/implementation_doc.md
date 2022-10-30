@@ -28,9 +28,9 @@ In addition to these classes. The game has its main file, the app.py which is us
 
 The branching factor of the game tree varies based on whose moves the layer of nodes represents and how many empty tiles are there on the game board. The player usually has 4 moves available for them, with the exception of having a direction where moving there does not alter the board: these moves are not possible. The "computer" has two possible moves for each empty tile on the game grid. This ranges from 2\*15 in cases where there is only one tile on the board to 0 in cases when the board is full of tiles but still playable.
 
-### Time Complexity
+### Time and Space Complexity
 
-The worst case time complexity of the minimax algorithm is O(m^d) where m is the available moves on each turn and d is the used search depth. The m is determined by the brancing factor explained above. Due to iterative deepening the search depth varies from 2 full-turns (= 4 half-turns) up. A new level is calculated if the time calculating the ongoing round has not passed 0.3 seconds when the maximizer returns the search result. The big-o complexity is not affected by the alpha beta pruning since in the worst case all nodes will be explored.
+The worst case time complexity of the minimax algorithm is O(m^d) where m is the available moves (branching factor) on each turn and d is the used search depth. The m is determined by the brancing factor explained above. Due to iterative deepening the search depth varies from 2 full-turns (= 4 half-turns) up. A new level is calculated if the time calculating the ongoing round has not passed 0.3 seconds when the maximizer returns the search result. The big-o complexity is not affected by the alpha beta pruning since in the worst case all nodes will be explored. The worst case space complexity for the algorithm is O(MD)
 
 ### Evaluation Heuristic
 
@@ -41,10 +41,6 @@ When designing the heuristic the base thought was that the goal of the game is t
 To emphasize tile placement I count for each horizontal and column the accumulated absolute difference between the tiles in that set of four tiles, and take the negative of that. This values boards where the difference between neighboring tiles is as little as possible and is quite fast to calculate for each evaluation.
 
 To emhasize board emptiness, the score calculated before is multiplied by the quantity of tiles present on the board.
-
-## Development Ideas / Next Steps
-
-TBD
 
 ## References
 

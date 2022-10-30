@@ -66,7 +66,7 @@ class MiniMaxPlayer:
         with open(writepath, "a") as f:
             f.write(text + "\n")
 
-    def play_round(self, state: List[List[int]], iterative_deepening: True, id_timelimit: 0.3, id_skippedturns: 0):
+    def play_round(self, state: List[List[int]], iterative_deepening=True, id_timelimit=0.3, id_skippedturns=0):
         """Calculates the next move for given games state
 
         Args:
@@ -78,17 +78,14 @@ class MiniMaxPlayer:
         starttime = time.time()
         elapsed = 0
         maxdepth = 2
+        maximized = None
         while elapsed < id_timelimit:
             maximized = self.maximize(state, 0, maxdepth, -INFINITY, INFINITY, ["root"])
-            # self.logwrite(f"Maximized {state} , {maximized['path']}, Value {maximized['value']}")
             maxdepth += 1
 
             self.last_best = maximized["path"][1]
 
             elapsed += time.time() - starttime
-            # Write html
-            # states = list(self.known_paths.values())
-            # write_html(form_graph(states), f"turn_{self.round_count}")
             if self.round_count < id_skippedturns or not iterative_deepening:
                 break
 
@@ -116,9 +113,7 @@ class MiniMaxPlayer:
         Returns:
             dict: The maximized state of the game tree and the path that leads there
         """
-        # print("Maximizer " + str(state))
         self.known_paths[f"{path}"] = {"board": state, "path": path}
-
         if board.game_is_over(state) or depth > maxdepth:
             return {"value": self.heuristic(state), "path": path}
 
@@ -126,14 +121,12 @@ class MiniMaxPlayer:
         directions = {"up": board.move_up, "down": board.move_down, "left": board.move_left, "right": board.move_right}
         last_best_function = directions.pop(self.last_best)
         for direction, move in [(self.last_best, last_best_function), *directions.items()]:
-            # print(direction)
             child, empties = move((state, None))
 
             if child == state:
                 continue
 
             candidate = self.minimize(child, empties, depth, maxdepth, alpha, beta, [*path, direction])
-            # self.logwrite(f"Best from level {depth} maximize: {candidate}")
 
             if candidate["value"] > maximized["value"]:
                 maximized = candidate
@@ -158,7 +151,6 @@ class MiniMaxPlayer:
         Returns:
             dict: The maximized state of the game tree and the path that leads there
         """
-        # print("Minimizer: " + str(state))
         self.known_paths[f"{path}"] = {"board": state, "path": path}
 
         if board.game_is_over(state) or depth > maxdepth:

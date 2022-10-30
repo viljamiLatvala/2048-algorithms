@@ -27,12 +27,11 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import os
-import time
-import csv
-
 from browsergame.browsergame import BrowserGame
-from gamehandler.gamehandler import GameHandler
+from boardfunctions.boardfunctions import Boardfunctions
 from players.userinputplayer import UserInputPlayer
+from players.minimaxplayer import MiniMaxPlayer
+from selenium.common.exceptions import NoSuchWindowException
 
 
 def clear():
@@ -49,7 +48,7 @@ def game_selection() -&gt; object:
     games = [BrowserGame]
 
     print(&#34;Select which game implementation to play on:&#34;)
-    print(&#34;\t[1] - BrowserGame (play2048.co -website)&#34;)
+    print(&#34;\t[1] - play2048.co -website (requires Chrome)&#34;)
     selection = int(input(&#34;Selection: &#34;)) - 1
     return games[selection]
 
@@ -60,12 +59,22 @@ def player_selection() -&gt; object:
     Returns:
         object: Player -class representing the selected player
     &#34;&#34;&#34;
-    players = [UserInputPlayer]
+    players = [MiniMaxPlayer, UserInputPlayer]
     print(&#34;\nSelect who plays the game(s)&#34;)
-    print(&#34;\t[1] - UserInputPlayer (You choose the moves)&#34;)
-    print(&#34;\t[2] - MinMaxAiPlayer [TODO]&#34;)
-    selection = int(input(&#34;Selection: &#34;)) - 1
-    return players[selection]
+    print(&#34;\t[1] - MinMaxAiPlayer&#34;)
+    print(&#34;\t[2] - UserInputPlayer (You choose the moves)&#34;)
+    selection = False
+    while not selection:
+        selection = input(&#34;Selection (1): &#34;)
+        if selection == &#34;&#34;:
+            selection = players[0]
+        else:
+            try:
+                selection = int(selection) - 1
+                selection = players[selection]
+            except Exception:
+                selection = False
+    return selection
 
 
 def game_qty_selection() -&gt; int:
@@ -75,72 +84,123 @@ def game_qty_selection() -&gt; int:
         int: Number of games to play
     &#34;&#34;&#34;
     print(&#34;\nSelect how many games to play&#34;)
-    selection = int(input(&#34;Selection: &#34;))
+    selection = False
+    while not selection:
+        selection = input(&#34;Selection (1): &#34;)
+        if selection == &#34;&#34;:
+            selection = 1
+        else:
+            try:
+                selection = int(selection)
+            except Exception:
+                selection = False
+
     return selection
+
+
+def ask_iterative():
+    iterative_deepening = input(&#34;Use iterative deepening? y/n (y): &#34;)
+    choice = False
+    if len(iterative_deepening) == 0:
+        choice = True
+    elif iterative_deepening.lower() == &#34;y&#34;:
+        choice = True
+    elif iterative_deepening.lower() == &#34;n&#34;:
+        choice = False
+    else:
+        ask_iterative()
+
+    id_timelimit = 0.3
+    skippedturns = 0
+
+    if choice:
+        while not id_timelimit:
+            try:
+                id_timelimit = input(
+                    &#34;Give maximum accumulated time (as float) to trigger deepening to +1 depth (0.3): &#34;
+                )
+                if len(id_timelimit) == 0:
+                    id_timelimit = 0.3
+                else:
+                    id_timelimit = float(id_timelimit)
+            except Exception:
+                pass
+
+        while not skippedturns:
+            try:
+                skippedturns = input(
+                    &#34;Give number (as int) of rounds to not apply iterative deepening to at the start of the game (200): &#34;
+                )
+                if len(skippedturns) == 0:
+                    skippedturns = 200
+                else:
+                    skippedturns = int(skippedturns)
+
+            except Exception:
+                pass
+
+    return {&#34;iterative_deepening&#34;: choice, &#34;id_timelimit&#34;: id_timelimit, &#34;skippedturns&#34;: skippedturns}
+
+
+def algorithm_settings():
+    return {&#34;deepening&#34;: ask_iterative()}
 
 
 if __name__ == &#34;__main__&#34;:
     clear()
     print(&#34;Welcome to 2048-algorithms!&#34;)
     print(&#34;First, choose how you wish to run the application&#34;, end=&#34;\n\n&#34;)
-    print(&#34;Select which game implementation to play on:&#34;)
 
-    # [TODO] could also just use static classes?
-    game = game_selection()
     player = player_selection()
     games_to_play = game_qty_selection()
+    settings = {}
+    if player.__dict__[&#34;__module__&#34;] == &#34;players.minimaxplayer&#34;:
+        settings = ask_iterative()
     print(&#34;Thank you, onto the games then!&#34;)
+    print(&#34;\n\n\n\n\n&#34;)
 
-    game_handler = GameHandler()
-    game = game()
+    game = BrowserGame()
     player = player()
 
-    logfile = open(&#34;logs.csv&#34;, &#34;a&#34;, encoding=&#34;utf-8&#34;)
-    logwriter = csv.writer(logfile)
-    logheaders = [
-        &#34;event&#34;,
-        &#34;timestamp&#34;,
-        &#34;player&#34;,
-        &#34;game&#34;,
-        &#34;run_id&#34;,
-        &#34;run_id_custom&#34;,
-        &#34;highest_tile&#34;,
-        &#34;moves_count&#34;,
-        &#34;time_spent&#34;,
-        &#34;game_state&#34;,
-    ]
-    logwriter.writerow(logheaders)
-
-    for game_no in range(games_to_play):
-
+    game_no = 1
+    while game_no &lt;= games_to_play:
         max_score = 0
         turn_count = 0
+        player.round_count = 0
 
         game.start_game()
         game_state = game.read_grid()
-        while not game_handler.game_is_over(game_state):
-            next_move = player.play_round(game_state)
+        while not Boardfunctions.game_is_over(game_state):
+            try:
+                if player.__class__.__name__ == &#34;MiniMaxPlayer&#34;:
+                    next_move = player.play_round(
+                        game_state, settings[&#34;iterative_deepening&#34;], settings[&#34;id_timelimit&#34;], settings[&#34;skippedturns&#34;]
+                    )
+                else:
+                    next_move = player.play_round(game_state)
 
-            if next_move == &#34;Up&#34;:
-                game.move_up()
-            elif next_move == &#34;Down&#34;:
-                game.move_down()
-            elif next_move == &#34;Left&#34;:
-                game.move_left()
-            elif next_move == &#34;Right&#34;:
-                game.move_right()
+                if next_move == &#34;up&#34;:
+                    game.move_up()
+                elif next_move == &#34;down&#34;:
+                    game.move_down()
+                elif next_move == &#34;left&#34;:
+                    game.move_left()
+                elif next_move == &#34;right&#34;:
+                    game.move_right()
 
-            turn_count += 1
+                turn_count += 1
 
-            game_state = game.read_grid()
-            gridmax = game_handler.get_grid_max_value(game_state)
-            if gridmax &gt; max_score:
-                max_score = gridmax
+                game_state = game.read_grid()
+                gridmax = Boardfunctions.get_grid_max_value(game_state)
+                if gridmax &gt; max_score:
+                    max_score = gridmax
+            except NoSuchWindowException:
+                print(&#34;The browser window has been closed&#34;)
+                break
 
         game.quit_game()
-        print(f&#34;Game {game_no + 1}/{games_to_play} over! Score: {max_score}, played_turns: {turn_count}&#34;)
-
-    logfile.close()</code></pre>
+        print(f&#34;Game {game_no}/{games_to_play} over! Score: {max_score}, played_turns: {turn_count}&#34;)
+        game_no += 1</code></pre>
 </details>
 </section>
 <section>
@@ -150,6 +210,72 @@ if __name__ == &#34;__main__&#34;:
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
+<dt id="src.app.algorithm_settings"><code class="name flex">
+<span>def <span class="ident">algorithm_settings</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def algorithm_settings():
+    return {&#34;deepening&#34;: ask_iterative()}</code></pre>
+</details>
+</dd>
+<dt id="src.app.ask_iterative"><code class="name flex">
+<span>def <span class="ident">ask_iterative</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ask_iterative():
+    iterative_deepening = input(&#34;Use iterative deepening? y/n (y): &#34;)
+    choice = False
+    if len(iterative_deepening) == 0:
+        choice = True
+    elif iterative_deepening.lower() == &#34;y&#34;:
+        choice = True
+    elif iterative_deepening.lower() == &#34;n&#34;:
+        choice = False
+    else:
+        ask_iterative()
+
+    id_timelimit = 0.3
+    skippedturns = 0
+
+    if choice:
+        while not id_timelimit:
+            try:
+                id_timelimit = input(
+                    &#34;Give maximum accumulated time (as float) to trigger deepening to +1 depth (0.3): &#34;
+                )
+                if len(id_timelimit) == 0:
+                    id_timelimit = 0.3
+                else:
+                    id_timelimit = float(id_timelimit)
+            except Exception:
+                pass
+
+        while not skippedturns:
+            try:
+                skippedturns = input(
+                    &#34;Give number (as int) of rounds to not apply iterative deepening to at the start of the game (200): &#34;
+                )
+                if len(skippedturns) == 0:
+                    skippedturns = 200
+                else:
+                    skippedturns = int(skippedturns)
+
+            except Exception:
+                pass
+
+    return {&#34;iterative_deepening&#34;: choice, &#34;id_timelimit&#34;: id_timelimit, &#34;skippedturns&#34;: skippedturns}</code></pre>
+</details>
+</dd>
 <dt id="src.app.clear"><code class="name flex">
 <span>def <span class="ident">clear</span></span>(<span>)</span>
 </code></dt>
@@ -185,7 +311,17 @@ if __name__ == &#34;__main__&#34;:
         int: Number of games to play
     &#34;&#34;&#34;
     print(&#34;\nSelect how many games to play&#34;)
-    selection = int(input(&#34;Selection: &#34;))
+    selection = False
+    while not selection:
+        selection = input(&#34;Selection (1): &#34;)
+        if selection == &#34;&#34;:
+            selection = 1
+        else:
+            try:
+                selection = int(selection)
+            except Exception:
+                selection = False
+
     return selection</code></pre>
 </details>
 </dd>
@@ -212,7 +348,7 @@ if __name__ == &#34;__main__&#34;:
     games = [BrowserGame]
 
     print(&#34;Select which game implementation to play on:&#34;)
-    print(&#34;\t[1] - BrowserGame (play2048.co -website)&#34;)
+    print(&#34;\t[1] - play2048.co -website (requires Chrome)&#34;)
     selection = int(input(&#34;Selection: &#34;)) - 1
     return games[selection]</code></pre>
 </details>
@@ -237,12 +373,22 @@ if __name__ == &#34;__main__&#34;:
     Returns:
         object: Player -class representing the selected player
     &#34;&#34;&#34;
-    players = [UserInputPlayer]
+    players = [MiniMaxPlayer, UserInputPlayer]
     print(&#34;\nSelect who plays the game(s)&#34;)
-    print(&#34;\t[1] - UserInputPlayer (You choose the moves)&#34;)
-    print(&#34;\t[2] - MinMaxAiPlayer [TODO]&#34;)
-    selection = int(input(&#34;Selection: &#34;)) - 1
-    return players[selection]</code></pre>
+    print(&#34;\t[1] - MinMaxAiPlayer&#34;)
+    print(&#34;\t[2] - UserInputPlayer (You choose the moves)&#34;)
+    selection = False
+    while not selection:
+        selection = input(&#34;Selection (1): &#34;)
+        if selection == &#34;&#34;:
+            selection = players[0]
+        else:
+            try:
+                selection = int(selection) - 1
+                selection = players[selection]
+            except Exception:
+                selection = False
+    return selection</code></pre>
 </details>
 </dd>
 </dl>
@@ -262,7 +408,9 @@ if __name__ == &#34;__main__&#34;:
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="">
+<ul class="two-column">
+<li><code><a title="src.app.algorithm_settings" href="#src.app.algorithm_settings">algorithm_settings</a></code></li>
+<li><code><a title="src.app.ask_iterative" href="#src.app.ask_iterative">ask_iterative</a></code></li>
 <li><code><a title="src.app.clear" href="#src.app.clear">clear</a></code></li>
 <li><code><a title="src.app.game_qty_selection" href="#src.app.game_qty_selection">game_qty_selection</a></code></li>
 <li><code><a title="src.app.game_selection" href="#src.app.game_selection">game_selection</a></code></li>

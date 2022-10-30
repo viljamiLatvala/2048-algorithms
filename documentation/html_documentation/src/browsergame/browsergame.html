@@ -31,9 +31,13 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import NoSuchElementException, NoSuchWindowException
+from boardfunctions.boardfunctions import Boardfunctions
 
 
+# &lt;a class=&#34;keep-playing-button&#34;&gt;Keep going&lt;/a&gt;
 class BrowserGame:
     &#34;&#34;&#34;
     A class for representing the browser version of the game 2048,
@@ -42,60 +46,100 @@ class BrowserGame:
 
     def __init__(self):
         self.url = &#34;https://play2048.co/&#34;
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+        self.driver = None
         self.game = None
+        self.score_2048_surpassed = False
 
     def start_game(self):
         &#34;&#34;&#34;Open browser an navigate to games url. Accept cookie consent&#34;&#34;&#34;
-
+        chrome_options = Options()
+        chrome_options.add_argument(&#34;--log-level=3&#34;)
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
         self.driver.get(self.url)
-        self.driver.find_element(By.ID, &#34;ez-accept-all&#34;).click()
+        self.score_2048_surpassed = False
+        try:
+            cookie_prompt = self.driver.find_element(By.ID, &#34;ez-accept-all&#34;)
+            cookie_prompt.click()
+        except NoSuchElementException:
+            pass
+
+        self.driver.execute_script(
+            &#34;&#34;&#34;
+            var ads = document.querySelectorAll(&#34;.ezoic-ad&#34;);
+            ads.forEach(ad =&gt; ad.parentNode.removeChild(ad));
+            &#34;&#34;&#34;
+        )
+
         self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
 
     def quit_game(self):
         &#34;&#34;&#34;Closes the controlled web browser and reassigns a new webdriver to be ready for possible new games&#34;&#34;&#34;
+        try:
+            self.driver.title
+        except NoSuchWindowException:
+            return
         self.driver.close()
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
     def move_up(self):
         &#34;&#34;&#34;Commands the game to move up&#34;&#34;&#34;
-        self.game.send_keys(Keys.ARROW_UP)
-        time.sleep(0.2)
+        try:
+            self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+            self.game.send_keys(Keys.ARROW_UP)
+        except NoSuchWindowException:
+            raise NoSuchWindowException
 
     def move_down(self):
         &#34;&#34;&#34;Commands the game to move down&#34;&#34;&#34;
-        self.game.send_keys(Keys.ARROW_DOWN)
-        time.sleep(0.2)
+        try:
+            self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+            self.game.send_keys(Keys.ARROW_DOWN)
+        except NoSuchWindowException:
+            raise NoSuchWindowException
 
     def move_left(self):
         &#34;&#34;&#34;Commands the game to move left&#34;&#34;&#34;
-        self.game.send_keys(Keys.ARROW_LEFT)
-        time.sleep(0.2)
+        try:
+            self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+            self.game.send_keys(Keys.ARROW_LEFT)
+        except NoSuchWindowException:
+            raise NoSuchWindowException
 
     def move_right(self):
         &#34;&#34;&#34;Commands the game to move right&#34;&#34;&#34;
-        self.game.send_keys(Keys.ARROW_RIGHT)
-        time.sleep(0.2)
+        try:
+            self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+            self.game.send_keys(Keys.ARROW_RIGHT)
+        except NoSuchWindowException:
+            raise NoSuchWindowException
 
     def read_grid(self):
         &#34;&#34;&#34;Parses the HTML representing the game grid, returns a 2-dimensional array representation&#34;&#34;&#34;
-        grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        try:
+            time.sleep(0.08)
+            grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+            tile_container = self.driver.find_element(By.CLASS_NAME, &#34;tile-container&#34;)
+            tiles = tile_container.find_elements(By.CLASS_NAME, &#34;tile&#34;)
+            for tile in tiles:
+                tile_classes = tile.get_attribute(&#34;class&#34;)
+                position_prefix = &#34;tile-position-&#34;
+                tile_pos = tile_classes.find(position_prefix)
+                pos_str_start = tile_pos + len(position_prefix)
+                pos_str_end = pos_str_start + 3
+                pos_str = tile_classes[pos_str_start:pos_str_end]
+                tile_col = int(pos_str[0]) - 1
+                tile_row = int(pos_str[2]) - 1
+                tile_val = int(tile_classes.split(&#34; &#34;)[1].split(&#34;-&#34;)[1])
+                grid[tile_row][tile_col] = tile_val
 
-        tile_container = self.driver.find_element(By.CLASS_NAME, &#34;tile-container&#34;)
-        tiles = tile_container.find_elements(By.CLASS_NAME, &#34;tile&#34;)
-        for tile in tiles:
-            tile_classes = tile.get_attribute(&#34;class&#34;)
-            position_prefix = &#34;tile-position-&#34;
-            tile_pos = tile_classes.find(position_prefix)
-            pos_str_start = tile_pos + len(position_prefix)
-            pos_str_end = pos_str_start + 3
-            pos_str = tile_classes[pos_str_start:pos_str_end]
-            tile_col = int(pos_str[0]) - 1
-            tile_row = int(pos_str[2]) - 1
-            tile_val = int(tile.text)
-            grid[tile_row][tile_col] = tile_val
+            if Boardfunctions.get_grid_max_value(grid) == 2048 and not self.score_2048_surpassed:
+                time.sleep(5.25)
+                keep_playing = self.driver.find_element(By.CLASS_NAME, &#34;keep-playing-button&#34;)
+                keep_playing.click()
+                self.score_2048_surpassed = True
 
-        return grid</code></pre>
+            return grid
+        except NoSuchWindowException:
+            raise NoSuchWindowException</code></pre>
 </details>
 </section>
 <section>
@@ -125,60 +169,100 @@ and having methods for controlling it</p></div>
 
     def __init__(self):
         self.url = &#34;https://play2048.co/&#34;
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+        self.driver = None
         self.game = None
+        self.score_2048_surpassed = False
 
     def start_game(self):
         &#34;&#34;&#34;Open browser an navigate to games url. Accept cookie consent&#34;&#34;&#34;
-
+        chrome_options = Options()
+        chrome_options.add_argument(&#34;--log-level=3&#34;)
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
         self.driver.get(self.url)
-        self.driver.find_element(By.ID, &#34;ez-accept-all&#34;).click()
+        self.score_2048_surpassed = False
+        try:
+            cookie_prompt = self.driver.find_element(By.ID, &#34;ez-accept-all&#34;)
+            cookie_prompt.click()
+        except NoSuchElementException:
+            pass
+
+        self.driver.execute_script(
+            &#34;&#34;&#34;
+            var ads = document.querySelectorAll(&#34;.ezoic-ad&#34;);
+            ads.forEach(ad =&gt; ad.parentNode.removeChild(ad));
+            &#34;&#34;&#34;
+        )
+
         self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
 
     def quit_game(self):
         &#34;&#34;&#34;Closes the controlled web browser and reassigns a new webdriver to be ready for possible new games&#34;&#34;&#34;
+        try:
+            self.driver.title
+        except NoSuchWindowException:
+            return
         self.driver.close()
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
     def move_up(self):
         &#34;&#34;&#34;Commands the game to move up&#34;&#34;&#34;
-        self.game.send_keys(Keys.ARROW_UP)
-        time.sleep(0.2)
+        try:
+            self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+            self.game.send_keys(Keys.ARROW_UP)
+        except NoSuchWindowException:
+            raise NoSuchWindowException
 
     def move_down(self):
         &#34;&#34;&#34;Commands the game to move down&#34;&#34;&#34;
-        self.game.send_keys(Keys.ARROW_DOWN)
-        time.sleep(0.2)
+        try:
+            self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+            self.game.send_keys(Keys.ARROW_DOWN)
+        except NoSuchWindowException:
+            raise NoSuchWindowException
 
     def move_left(self):
         &#34;&#34;&#34;Commands the game to move left&#34;&#34;&#34;
-        self.game.send_keys(Keys.ARROW_LEFT)
-        time.sleep(0.2)
+        try:
+            self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+            self.game.send_keys(Keys.ARROW_LEFT)
+        except NoSuchWindowException:
+            raise NoSuchWindowException
 
     def move_right(self):
         &#34;&#34;&#34;Commands the game to move right&#34;&#34;&#34;
-        self.game.send_keys(Keys.ARROW_RIGHT)
-        time.sleep(0.2)
+        try:
+            self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+            self.game.send_keys(Keys.ARROW_RIGHT)
+        except NoSuchWindowException:
+            raise NoSuchWindowException
 
     def read_grid(self):
         &#34;&#34;&#34;Parses the HTML representing the game grid, returns a 2-dimensional array representation&#34;&#34;&#34;
-        grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        try:
+            time.sleep(0.08)
+            grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+            tile_container = self.driver.find_element(By.CLASS_NAME, &#34;tile-container&#34;)
+            tiles = tile_container.find_elements(By.CLASS_NAME, &#34;tile&#34;)
+            for tile in tiles:
+                tile_classes = tile.get_attribute(&#34;class&#34;)
+                position_prefix = &#34;tile-position-&#34;
+                tile_pos = tile_classes.find(position_prefix)
+                pos_str_start = tile_pos + len(position_prefix)
+                pos_str_end = pos_str_start + 3
+                pos_str = tile_classes[pos_str_start:pos_str_end]
+                tile_col = int(pos_str[0]) - 1
+                tile_row = int(pos_str[2]) - 1
+                tile_val = int(tile_classes.split(&#34; &#34;)[1].split(&#34;-&#34;)[1])
+                grid[tile_row][tile_col] = tile_val
 
-        tile_container = self.driver.find_element(By.CLASS_NAME, &#34;tile-container&#34;)
-        tiles = tile_container.find_elements(By.CLASS_NAME, &#34;tile&#34;)
-        for tile in tiles:
-            tile_classes = tile.get_attribute(&#34;class&#34;)
-            position_prefix = &#34;tile-position-&#34;
-            tile_pos = tile_classes.find(position_prefix)
-            pos_str_start = tile_pos + len(position_prefix)
-            pos_str_end = pos_str_start + 3
-            pos_str = tile_classes[pos_str_start:pos_str_end]
-            tile_col = int(pos_str[0]) - 1
-            tile_row = int(pos_str[2]) - 1
-            tile_val = int(tile.text)
-            grid[tile_row][tile_col] = tile_val
+            if Boardfunctions.get_grid_max_value(grid) == 2048 and not self.score_2048_surpassed:
+                time.sleep(5.25)
+                keep_playing = self.driver.find_element(By.CLASS_NAME, &#34;keep-playing-button&#34;)
+                keep_playing.click()
+                self.score_2048_surpassed = True
 
-        return grid</code></pre>
+            return grid
+        except NoSuchWindowException:
+            raise NoSuchWindowException</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
@@ -193,8 +277,11 @@ and having methods for controlling it</p></div>
 </summary>
 <pre><code class="python">def move_down(self):
     &#34;&#34;&#34;Commands the game to move down&#34;&#34;&#34;
-    self.game.send_keys(Keys.ARROW_DOWN)
-    time.sleep(0.2)</code></pre>
+    try:
+        self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+        self.game.send_keys(Keys.ARROW_DOWN)
+    except NoSuchWindowException:
+        raise NoSuchWindowException</code></pre>
 </details>
 </dd>
 <dt id="src.browsergame.browsergame.BrowserGame.move_left"><code class="name flex">
@@ -208,8 +295,11 @@ and having methods for controlling it</p></div>
 </summary>
 <pre><code class="python">def move_left(self):
     &#34;&#34;&#34;Commands the game to move left&#34;&#34;&#34;
-    self.game.send_keys(Keys.ARROW_LEFT)
-    time.sleep(0.2)</code></pre>
+    try:
+        self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+        self.game.send_keys(Keys.ARROW_LEFT)
+    except NoSuchWindowException:
+        raise NoSuchWindowException</code></pre>
 </details>
 </dd>
 <dt id="src.browsergame.browsergame.BrowserGame.move_right"><code class="name flex">
@@ -223,8 +313,11 @@ and having methods for controlling it</p></div>
 </summary>
 <pre><code class="python">def move_right(self):
     &#34;&#34;&#34;Commands the game to move right&#34;&#34;&#34;
-    self.game.send_keys(Keys.ARROW_RIGHT)
-    time.sleep(0.2)</code></pre>
+    try:
+        self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+        self.game.send_keys(Keys.ARROW_RIGHT)
+    except NoSuchWindowException:
+        raise NoSuchWindowException</code></pre>
 </details>
 </dd>
 <dt id="src.browsergame.browsergame.BrowserGame.move_up"><code class="name flex">
@@ -238,8 +331,11 @@ and having methods for controlling it</p></div>
 </summary>
 <pre><code class="python">def move_up(self):
     &#34;&#34;&#34;Commands the game to move up&#34;&#34;&#34;
-    self.game.send_keys(Keys.ARROW_UP)
-    time.sleep(0.2)</code></pre>
+    try:
+        self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)
+        self.game.send_keys(Keys.ARROW_UP)
+    except NoSuchWindowException:
+        raise NoSuchWindowException</code></pre>
 </details>
 </dd>
 <dt id="src.browsergame.browsergame.BrowserGame.quit_game"><code class="name flex">
@@ -253,8 +349,11 @@ and having methods for controlling it</p></div>
 </summary>
 <pre><code class="python">def quit_game(self):
     &#34;&#34;&#34;Closes the controlled web browser and reassigns a new webdriver to be ready for possible new games&#34;&#34;&#34;
-    self.driver.close()
-    self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))</code></pre>
+    try:
+        self.driver.title
+    except NoSuchWindowException:
+        return
+    self.driver.close()</code></pre>
 </details>
 </dd>
 <dt id="src.browsergame.browsergame.BrowserGame.read_grid"><code class="name flex">
@@ -268,23 +367,32 @@ and having methods for controlling it</p></div>
 </summary>
 <pre><code class="python">def read_grid(self):
     &#34;&#34;&#34;Parses the HTML representing the game grid, returns a 2-dimensional array representation&#34;&#34;&#34;
-    grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    try:
+        time.sleep(0.08)
+        grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        tile_container = self.driver.find_element(By.CLASS_NAME, &#34;tile-container&#34;)
+        tiles = tile_container.find_elements(By.CLASS_NAME, &#34;tile&#34;)
+        for tile in tiles:
+            tile_classes = tile.get_attribute(&#34;class&#34;)
+            position_prefix = &#34;tile-position-&#34;
+            tile_pos = tile_classes.find(position_prefix)
+            pos_str_start = tile_pos + len(position_prefix)
+            pos_str_end = pos_str_start + 3
+            pos_str = tile_classes[pos_str_start:pos_str_end]
+            tile_col = int(pos_str[0]) - 1
+            tile_row = int(pos_str[2]) - 1
+            tile_val = int(tile_classes.split(&#34; &#34;)[1].split(&#34;-&#34;)[1])
+            grid[tile_row][tile_col] = tile_val
 
-    tile_container = self.driver.find_element(By.CLASS_NAME, &#34;tile-container&#34;)
-    tiles = tile_container.find_elements(By.CLASS_NAME, &#34;tile&#34;)
-    for tile in tiles:
-        tile_classes = tile.get_attribute(&#34;class&#34;)
-        position_prefix = &#34;tile-position-&#34;
-        tile_pos = tile_classes.find(position_prefix)
-        pos_str_start = tile_pos + len(position_prefix)
-        pos_str_end = pos_str_start + 3
-        pos_str = tile_classes[pos_str_start:pos_str_end]
-        tile_col = int(pos_str[0]) - 1
-        tile_row = int(pos_str[2]) - 1
-        tile_val = int(tile.text)
-        grid[tile_row][tile_col] = tile_val
+        if Boardfunctions.get_grid_max_value(grid) == 2048 and not self.score_2048_surpassed:
+            time.sleep(5.25)
+            keep_playing = self.driver.find_element(By.CLASS_NAME, &#34;keep-playing-button&#34;)
+            keep_playing.click()
+            self.score_2048_surpassed = True
 
-    return grid</code></pre>
+        return grid
+    except NoSuchWindowException:
+        raise NoSuchWindowException</code></pre>
 </details>
 </dd>
 <dt id="src.browsergame.browsergame.BrowserGame.start_game"><code class="name flex">
@@ -298,9 +406,24 @@ and having methods for controlling it</p></div>
 </summary>
 <pre><code class="python">def start_game(self):
     &#34;&#34;&#34;Open browser an navigate to games url. Accept cookie consent&#34;&#34;&#34;
-
+    chrome_options = Options()
+    chrome_options.add_argument(&#34;--log-level=3&#34;)
+    self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
     self.driver.get(self.url)
-    self.driver.find_element(By.ID, &#34;ez-accept-all&#34;).click()
+    self.score_2048_surpassed = False
+    try:
+        cookie_prompt = self.driver.find_element(By.ID, &#34;ez-accept-all&#34;)
+        cookie_prompt.click()
+    except NoSuchElementException:
+        pass
+
+    self.driver.execute_script(
+        &#34;&#34;&#34;
+        var ads = document.querySelectorAll(&#34;.ezoic-ad&#34;);
+        ads.forEach(ad =&gt; ad.parentNode.removeChild(ad));
+        &#34;&#34;&#34;
+    )
+
     self.game = self.driver.find_element(By.TAG_NAME, &#34;body&#34;)</code></pre>
 </details>
 </dd>

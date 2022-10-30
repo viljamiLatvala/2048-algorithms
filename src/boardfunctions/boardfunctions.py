@@ -60,10 +60,9 @@ class Boardfunctions:
 
     def copy_grid(item):
         """Creates a deep copy of a game grid"""
-        item = (item, [])
         grid = [[], [], [], []]
         for i in range(4):
-            grid[i].extend(item[0][i])
+            grid[i].extend(item[i])
 
         return grid
 
@@ -91,6 +90,10 @@ class Boardfunctions:
                 elif newstate[x][placed] == col and can_merge:
                     newstate[x][placed] *= 2
                     can_merge = not can_merge
+                elif newstate[x][placed] != col and not can_merge:
+                    can_merge = not can_merge
+                    placed += 1
+                    newstate[x][placed] = col
                 else:
                     placed += 1
                     newstate[x][placed] = col
@@ -122,9 +125,14 @@ class Boardfunctions:
                 elif newstate[x][placed] == col and can_merge:
                     newstate[x][placed] *= 2
                     can_merge = not can_merge
+                elif newstate[x][placed] != col and not can_merge:
+                    can_merge = not can_merge
+                    placed -= 1
+                    newstate[x][placed] = col
                 else:
                     placed -= 1
                     newstate[x][placed] = col
+            placed = placed if placed >= 0 else 4
             for i in range(0, placed):
                 empties.append((x, i))
         return (newstate, empties)
@@ -157,6 +165,10 @@ class Boardfunctions:
                     # print(f" | elif", end=" ")
                     newstate[placed][y] *= 2
                     can_merge = not can_merge
+                elif newstate[placed][y] != col and not can_merge:
+                    can_merge = not can_merge
+                    placed += 1
+                    newstate[placed][y] = col
                 else:
                     # print(f" | else", end=" ")
                     placed += 1
@@ -190,9 +202,14 @@ class Boardfunctions:
                 elif newstate[placed][y] == col and can_merge:
                     newstate[placed][y] *= 2
                     can_merge = not can_merge
+                elif newstate[placed][y] != col and not can_merge:
+                    can_merge = not can_merge
+                    placed -= 1
+                    newstate[placed][y] = col
                 else:
                     placed -= 1
                     newstate[placed][y] = col
+            placed = placed if placed >= 0 else 4
             for i in range(0, placed):
                 empties.append((i, y))
         return (newstate, empties)

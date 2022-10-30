@@ -27,6 +27,8 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">from typing import List
+from cmath import sqrt
+import copy
 
 
 class UserInputPlayer:
@@ -42,9 +44,7 @@ class UserInputPlayer:
         Returns:
             str: Direction to play as a string
         &#34;&#34;&#34;
-        direction = input(
-            &#34;Please provide direction to play: [U]p, [D]own, [L]eft, [R]igt&#34;
-        )
+        direction = input(&#34;Please provide direction to play: [U]p, [D]own, [L]eft, [R]igt&#34;)
 
         if direction.casefold() == &#34;u&#34;:
             return &#34;Up&#34;
@@ -90,9 +90,7 @@ Used for manually testing the program,</p></div>
         Returns:
             str: Direction to play as a string
         &#34;&#34;&#34;
-        direction = input(
-            &#34;Please provide direction to play: [U]p, [D]own, [L]eft, [R]igt&#34;
-        )
+        direction = input(&#34;Please provide direction to play: [U]p, [D]own, [L]eft, [R]igt&#34;)
 
         if direction.casefold() == &#34;u&#34;:
             return &#34;Up&#34;
@@ -135,9 +133,7 @@ Used for manually testing the program,</p></div>
     Returns:
         str: Direction to play as a string
     &#34;&#34;&#34;
-    direction = input(
-        &#34;Please provide direction to play: [U]p, [D]own, [L]eft, [R]igt&#34;
-    )
+    direction = input(&#34;Please provide direction to play: [U]p, [D]own, [L]eft, [R]igt&#34;)
 
     if direction.casefold() == &#34;u&#34;:
         return &#34;Up&#34;

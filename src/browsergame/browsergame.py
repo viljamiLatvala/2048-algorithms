@@ -6,8 +6,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import NoSuchElementException, NoSuchWindowException
+from boardfunctions.boardfunctions import Boardfunctions
 
-from boardfunctions.boardtree import draw_boards
 
 # <a class="keep-playing-button">Keep going</a>
 class BrowserGame:
@@ -20,6 +20,7 @@ class BrowserGame:
         self.url = "https://play2048.co/"
         self.driver = None
         self.game = None
+        self.score_2048_surpassed = False
 
     def start_game(self):
         """Open browser an navigate to games url. Accept cookie consent"""
@@ -27,6 +28,7 @@ class BrowserGame:
         chrome_options.add_argument("--log-level=3")
         self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
         self.driver.get(self.url)
+        self.score_2048_surpassed = False
         try:
             cookie_prompt = self.driver.find_element(By.ID, "ez-accept-all")
             cookie_prompt.click()
@@ -100,6 +102,12 @@ class BrowserGame:
                 tile_row = int(pos_str[2]) - 1
                 tile_val = int(tile_classes.split(" ")[1].split("-")[1])
                 grid[tile_row][tile_col] = tile_val
+
+            if Boardfunctions.get_grid_max_value(grid) == 2048 and not self.score_2048_surpassed:
+                time.sleep(5.25)
+                keep_playing = self.driver.find_element(By.CLASS_NAME, "keep-playing-button")
+                keep_playing.click()
+                self.score_2048_surpassed = True
 
             return grid
         except NoSuchWindowException:

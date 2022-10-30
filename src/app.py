@@ -82,8 +82,8 @@ def ask_iterative():
     else:
         ask_iterative()
 
-    id_timelimit = False
-    skippedturns = False
+    id_timelimit = 0.3
+    skippedturns = 0
 
     if choice:
         while not id_timelimit:
@@ -136,7 +136,6 @@ if __name__ == "__main__":
 
     game_no = 1
     while game_no <= games_to_play:
-        print("starting up the loop")
         max_score = 0
         turn_count = 0
         player.round_count = 0

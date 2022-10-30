@@ -26,18 +26,75 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import copy
-from typing import List
-from gamehandler.gamehandler import GameHandler
+<pre><code class="python">from typing import List, Tuple
+from boardfunctions.boardfunctions import Boardfunctions as board
+from boardfunctions.boardtree import *
+import time
+from pathlib import Path
 
-HUGE_NUMBER = 999999999
-SEARCH_DEPTH = 4
-
-gamehandler = GameHandler()
+INFINITY = float(&#34;inf&#34;)
 
 
 class MiniMaxPlayer:
-    def play_round(self, grid: List[List[int]]) -&gt; str:
+    def __init__(self) -&gt; None:
+        self.round_count = 0
+        self.known_paths = {}
+        self.last_best = &#34;up&#34;
+        self.filename = f&#34;game_{time.strftime(&#39;%d-%m-%YT%H-%M-%S&#39;)}.txt&#34;
+
+    def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -&gt; List[List[int]]:
+        &#34;&#34;&#34;Generates a child state for given state, representing a possible state created on game&#39;s turn
+
+        Args:
+            state (List[List[int]]): Game&#39;s state
+            slot (Tuple): X and Y coordinates of the slot to add tile to
+            value (int): value of the new tile
+
+        Returns:
+            List[List[int]]: The game state after spawning the new tile
+        &#34;&#34;&#34;
+        new_child = board.copy_grid(state)
+        new_child[slot[0]][slot[1]] = value
+        return new_child
+
+    def heuristic(self, state: List[List[int]]) -&gt; float:
+        &#34;&#34;&#34;Heuristic function to evaluate the value of a state that is not an end state
+
+        Args:
+            state (List[List[int]]): games state
+
+        Returns:
+            float: evaluated value of the game
+        &#34;&#34;&#34;
+        if board.game_is_over(state):
+            return -999999
+
+        tile_diff = 0
+        tiles = 0
+
+        for row in state:
+            last_tile = None
+            for col in row:
+                if col != 0:
+                    tiles += 1
+                    tile_diff += 0 if last_tile is None else abs(col - last_tile)
+                    last_tile = col
+
+        for y in range(4):
+            last_tile = None
+            for x in range(4):
+                if state[x][y] != 0:
+                    tile_diff += 0 if last_tile is None else abs(state[x][y] - last_tile)
+                    last_tile = state[x][y]
+
+        return -tile_diff * tiles
+
+    def logwrite(self, text):
+        writepath = Path(__file__).parents[2] / &#34;logs&#34; / self.filename
+        with open(writepath, &#34;a&#34;) as f:
+            f.write(text + &#34;\n&#34;)
+
+    def play_round(self, state: List[List[int]], iterative_deepening=True, id_timelimit=0.3, id_skippedturns=0):
         &#34;&#34;&#34;Calculates the next move for given games state
 
         Args:
@@ -46,186 +103,114 @@ class MiniMaxPlayer:
         Returns:
             str: Direction to play (&#34;left&#34;, &#34;right&#34;, &#34;up&#34;, &#34;down&#34;)
         &#34;&#34;&#34;
+        starttime = time.time()
+        elapsed = 0
+        maxdepth = 2
+        maximized = None
+        while elapsed &lt; id_timelimit:
+            maximized = self.maximize(state, 0, maxdepth, -INFINITY, INFINITY, [&#34;root&#34;])
+            maxdepth += 1
 
-    def generate_children(self, state: List[List[int]], is_player_turn: bool) -&gt; List[List[List[int]]]:
-        &#34;&#34;&#34;Generates list of possible next states of the game given a state
+            self.last_best = maximized[&#34;path&#34;][1]
 
-        Args:
-            state (List[List[int]]): Game state to generate child states to
-            is_player_turn (bool): Indicates if it is the player or the games turn to play
+            elapsed += time.time() - starttime
+            if self.round_count &lt; id_skippedturns or not iterative_deepening:
+                break
 
-        Returns:
-            List[List[List[int]]]: List of possible child states
-        &#34;&#34;&#34;
+        self.round_count += 1
+        decision = maximized[&#34;path&#34;][1]
+        self.logwrite(
+            f&#34;Round: {self.round_count} | Move: {decision.ljust(5,&#39; &#39;)} | Time spent: {&#39;%.2f&#39; % elapsed}s | Reached depth: {maxdepth} | Max tile: {board.get_grid_max_value(state)} | state: {state}&#34;
+        )
+        print(
+            f&#34;Round: {self.round_count} | Move: {decision.ljust(5,&#39; &#39;)} | Time spent: {&#39;%.2f&#39; % elapsed}s | Reached depth: {maxdepth}&#34;
+        )
+        return decision
 
-        if not is_player_turn:
-            return self.generate_spawn_tile(state)
-
-        return [
-            [*self.generate_direction(state, &#34;up&#34;)],
-            [*self.generate_direction(state, &#34;down&#34;)],
-            [*self.generate_direction(state, &#34;left&#34;)],
-            [*self.generate_direction(state, &#34;right&#34;)],
-        ]
-
-    def generate_spawn_tile(self, state: List[List[int]]) -&gt; List[List[List[int]]]:
-        &#34;&#34;&#34;Generates list of child states on computers turn
-
-        Args:
-            state (List[List[int]]): Game state to generate children to
-
-        Returns:
-            List[List[List[int]]]: List of possible child states
-        &#34;&#34;&#34;
-        children = []
-        for x, row in enumerate(state):
-            for y, col in enumerate(row):
-                if col == 0:
-                    new_child = copy.deepcopy(state)
-                    new_child[x][y] = 2
-                    children.append(new_child)
-
-                    new_child = copy.deepcopy(state)
-                    new_child[x][y] = 4
-                    children.append(new_child)
-        return children
-
-    def generate_direction(self, state: List[List[int]], direction: str) -&gt; List[List[int]]:
-        &#34;&#34;&#34;Generates the state of the grid after players move to given direction
-
-        Args:
-            state (List[List[int]]): Game state to move
-            direction (str): Direction to move to (&#34;left&#34;, &#34;right&#34;, &#34;up&#34;, &#34;down&#34;)
-
-        Returns:
-            List[List[int]]: Game state after moving the tiles to given direction
-        &#34;&#34;&#34;
-        new_state = []
-        rotated_grid = self.rotate_grid(state, direction)
-        for row in rotated_grid:
-            # Create list of all present tiles
-            tiles = []
-            for col in row:
-                if col != 0:
-                    tiles.append(col)
-
-            # Merge same values that are back to back
-            merged_tiles = []
-            if len(tiles) &gt; 0:
-                merged_tiles.append(tiles[0])
-
-            # Flag to prevent merging tiles that have been already merged once
-            allow_merge = True
-            for tile in tiles[1:]:
-                if tile == merged_tiles[len(merged_tiles) - 1] and allow_merge:
-                    merged_tiles[len(merged_tiles) - 1] *= 2
-                    allow_merge = False
-                else:
-                    merged_tiles.append(tile)
-                    allow_merge = True
-
-            # Fill up rest of the row with zeroes
-            while len(merged_tiles) &lt; len(state[0]):
-                merged_tiles.append(0)
-
-            new_state.append(merged_tiles)
-
-        return self.rotate_grid(new_state, direction)
-
-    def rotate_grid(self, state: List[List[int]], direction: str) -&gt; List[List[int]]:
-        &#34;&#34;&#34;Rotates the game state grid to normalize it for generating directions
-
-        Args:
-            state (List[List[int]]): Game state to rotate
-            direction (str): Direction that will be generated out of the rotated state
-
-        Returns:
-            List[List[int]]: Rotated game state grid
-        &#34;&#34;&#34;
-        if direction == &#34;left&#34;:
-            return state
-
-        elif direction == &#34;right&#34;:
-            return [list(reversed(row)) for row in state]
-
-        elif direction == &#34;up&#34;:
-            rotated_state = []
-
-            for i, row in enumerate(state):
-                newrow = []
-                for j, col in enumerate(row):
-                    newrow.append(state[j][i])
-                rotated_state.append(newrow)
-
-            return rotated_state
-
-        elif direction == &#34;down&#34;:
-            rotated_state = []
-
-            for i, row in enumerate(state):
-                newrow = []
-                for j, col in enumerate(row):
-                    newrow.insert(0, state[j][i])
-                rotated_state.insert(0, newrow)
-
-            return rotated_state
-
-    def heuristic(self, state: List[List[int]]) -&gt; float:
-        &#34;&#34;&#34;Heuristic function to evaluate the value of a state that is not an end state
-
-        Args:
-            state (List[List[int]]): _description_
-
-        Returns:
-            float: _description_
-        &#34;&#34;&#34;
-        tile_sum = 0
-        tiles = 0
-        for row in state:
-            for col in row:
-                if col != 0:
-                    tile_sum += col
-                    tiles += 1
-
-        return tile_sum / tiles
-
-    def maximize(self, state: List[List[int]], depth: int):
+    def maximize(self, state: List[List[int]], depth: int, maxdepth, alpha, beta, path):
         &#34;&#34;&#34;Maximizer function for the minmax -algorithm
 
         Args:
             state (List[List[int]]): Game state to maximize
             depth (int): Current depth of search
+            maxdepth(int): The depth to which continue the search
+            alpha(int): Alpha value for alpha-beta pruning
+            beta(int): Beta value for alpha-beta pruning
+            path(str): a string describing the path on a gametree leading to this state
 
         Returns:
-            _type_: _description_
+            dict: The maximized state of the game tree and the path that leads there
         &#34;&#34;&#34;
-        if gamehandler.game_is_over(state):
-            return gamehandler.get_grid_max_value(state)
-        if depth &gt; SEARCH_DEPTH:
-            return self.heuristic(state)
-        v = -HUGE_NUMBER
-        for child in self.generate_children(state, True):
-            v = max(v, self.minimize(child, depth))
-        return v
+        self.known_paths[f&#34;{path}&#34;] = {&#34;board&#34;: state, &#34;path&#34;: path}
+        if board.game_is_over(state) or depth &gt; maxdepth:
+            return {&#34;value&#34;: self.heuristic(state), &#34;path&#34;: path}
 
-    def minimize(self, state: List[List[int]], depth: int):
-        &#34;&#34;&#34;Minimizer functionf or the minmax -algorithm
+        maximized = {&#34;value&#34;: -INFINITY, &#34;path&#34;: path}
+        directions = {&#34;up&#34;: board.move_up, &#34;down&#34;: board.move_down, &#34;left&#34;: board.move_left, &#34;right&#34;: board.move_right}
+        last_best_function = directions.pop(self.last_best)
+        for direction, move in [(self.last_best, last_best_function), *directions.items()]:
+            child, empties = move((state, None))
+
+            if child == state:
+                continue
+
+            candidate = self.minimize(child, empties, depth, maxdepth, alpha, beta, [*path, direction])
+
+            if candidate[&#34;value&#34;] &gt; maximized[&#34;value&#34;]:
+                maximized = candidate
+
+            alpha = max(alpha, maximized[&#34;value&#34;])
+            if alpha &gt;= beta:
+                return maximized
+
+        return maximized
+
+    def minimize(self, state: List[List[int]], empties, depth: int, maxdepth, alpha, beta, path):
+        &#34;&#34;&#34;Minimizer function for the minmax -algorithm
 
         Args:
             state (List[List[int]]): Game state to minimize
             depth (int): Current depth of search
+            maxdepth(int): The depth to which continue the search
+            alpha(int): Alpha value for alpha-beta pruning
+            beta(int): Beta value for alpha-beta pruning
+            path(str): a string describing the path on a gametree leading to this state
 
         Returns:
-            _type_: _description_
+            dict: The maximized state of the game tree and the path that leads there
         &#34;&#34;&#34;
-        if gamehandler.game_is_over(state):
-            return gamehandler.get_grid_max_value(state)
-        if depth &gt; SEARCH_DEPTH:
-            return self.heuristic(state)
-        v = HUGE_NUMBER
-        for child in self.generate_children(state, False):
-            v = max(v, self.maximize(child, depth + 1))
-        return v</code></pre>
+        self.known_paths[f&#34;{path}&#34;] = {&#34;board&#34;: state, &#34;path&#34;: path}
+
+        if board.game_is_over(state) or depth &gt; maxdepth:
+            return {&#34;value&#34;: self.heuristic(state), &#34;path&#34;: path}
+
+        minimized = {&#34;value&#34;: INFINITY, &#34;path&#34;: path}
+
+        # As long as there are empty slots
+        for slot in empties:
+            for i in range(2):
+                child = self.generate_spawn_child(state, slot, (i + 1) * 2)
+                candidate = self.maximize(child, depth + 1, maxdepth, alpha, beta, [*path, f&#34;{slot} -&gt; {(i + 1) * 2}&#34;])
+
+                if candidate[&#34;value&#34;] &lt; minimized[&#34;value&#34;]:
+                    minimized = candidate
+
+                beta = min(beta, minimized[&#34;value&#34;])
+                if alpha &gt;= beta:
+                    return minimized
+
+        # If the board is full but still playable
+        if len(empties) == 0:
+            candidate = self.maximize(state, depth + 1, maxdepth, alpha, beta, path)
+
+            if candidate[&#34;value&#34;] &lt;= minimized[&#34;value&#34;]:
+                minimized = candidate
+
+            beta = min(beta, minimized[&#34;value&#34;])
+            if alpha &gt;= beta:
+                return minimized
+
+        return minimized</code></pre>
 </details>
 </section>
 <section>
@@ -247,7 +232,65 @@ class MiniMaxPlayer:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class MiniMaxPlayer:
-    def play_round(self, grid: List[List[int]]) -&gt; str:
+    def __init__(self) -&gt; None:
+        self.round_count = 0
+        self.known_paths = {}
+        self.last_best = &#34;up&#34;
+        self.filename = f&#34;game_{time.strftime(&#39;%d-%m-%YT%H-%M-%S&#39;)}.txt&#34;
+
+    def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -&gt; List[List[int]]:
+        &#34;&#34;&#34;Generates a child state for given state, representing a possible state created on game&#39;s turn
+
+        Args:
+            state (List[List[int]]): Game&#39;s state
+            slot (Tuple): X and Y coordinates of the slot to add tile to
+            value (int): value of the new tile
+
+        Returns:
+            List[List[int]]: The game state after spawning the new tile
+        &#34;&#34;&#34;
+        new_child = board.copy_grid(state)
+        new_child[slot[0]][slot[1]] = value
+        return new_child
+
+    def heuristic(self, state: List[List[int]]) -&gt; float:
+        &#34;&#34;&#34;Heuristic function to evaluate the value of a state that is not an end state
+
+        Args:
+            state (List[List[int]]): games state
+
+        Returns:
+            float: evaluated value of the game
+        &#34;&#34;&#34;
+        if board.game_is_over(state):
+            return -999999
+
+        tile_diff = 0
+        tiles = 0
+
+        for row in state:
+            last_tile = None
+            for col in row:
+                if col != 0:
+                    tiles += 1
+                    tile_diff += 0 if last_tile is None else abs(col - last_tile)
+                    last_tile = col
+
+        for y in range(4):
+            last_tile = None
+            for x in range(4):
+                if state[x][y] != 0:
+                    tile_diff += 0 if last_tile is None else abs(state[x][y] - last_tile)
+                    last_tile = state[x][y]
+
+        return -tile_diff * tiles
+
+    def logwrite(self, text):
+        writepath = Path(__file__).parents[2] / &#34;logs&#34; / self.filename
+        with open(writepath, &#34;a&#34;) as f:
+            f.write(text + &#34;\n&#34;)
+
+    def play_round(self, state: List[List[int]], iterative_deepening=True, id_timelimit=0.3, id_skippedturns=0):
         &#34;&#34;&#34;Calculates the next move for given games state
 
         Args:
@@ -256,336 +299,154 @@ class MiniMaxPlayer:
         Returns:
             str: Direction to play (&#34;left&#34;, &#34;right&#34;, &#34;up&#34;, &#34;down&#34;)
         &#34;&#34;&#34;
+        starttime = time.time()
+        elapsed = 0
+        maxdepth = 2
+        maximized = None
+        while elapsed &lt; id_timelimit:
+            maximized = self.maximize(state, 0, maxdepth, -INFINITY, INFINITY, [&#34;root&#34;])
+            maxdepth += 1
 
-    def generate_children(self, state: List[List[int]], is_player_turn: bool) -&gt; List[List[List[int]]]:
-        &#34;&#34;&#34;Generates list of possible next states of the game given a state
+            self.last_best = maximized[&#34;path&#34;][1]
 
-        Args:
-            state (List[List[int]]): Game state to generate child states to
-            is_player_turn (bool): Indicates if it is the player or the games turn to play
+            elapsed += time.time() - starttime
+            if self.round_count &lt; id_skippedturns or not iterative_deepening:
+                break
 
-        Returns:
-            List[List[List[int]]]: List of possible child states
-        &#34;&#34;&#34;
+        self.round_count += 1
+        decision = maximized[&#34;path&#34;][1]
+        self.logwrite(
+            f&#34;Round: {self.round_count} | Move: {decision.ljust(5,&#39; &#39;)} | Time spent: {&#39;%.2f&#39; % elapsed}s | Reached depth: {maxdepth} | Max tile: {board.get_grid_max_value(state)} | state: {state}&#34;
+        )
+        print(
+            f&#34;Round: {self.round_count} | Move: {decision.ljust(5,&#39; &#39;)} | Time spent: {&#39;%.2f&#39; % elapsed}s | Reached depth: {maxdepth}&#34;
+        )
+        return decision
 
-        if not is_player_turn:
-            return self.generate_spawn_tile(state)
-
-        return [
-            [*self.generate_direction(state, &#34;up&#34;)],
-            [*self.generate_direction(state, &#34;down&#34;)],
-            [*self.generate_direction(state, &#34;left&#34;)],
-            [*self.generate_direction(state, &#34;right&#34;)],
-        ]
-
-    def generate_spawn_tile(self, state: List[List[int]]) -&gt; List[List[List[int]]]:
-        &#34;&#34;&#34;Generates list of child states on computers turn
-
-        Args:
-            state (List[List[int]]): Game state to generate children to
-
-        Returns:
-            List[List[List[int]]]: List of possible child states
-        &#34;&#34;&#34;
-        children = []
-        for x, row in enumerate(state):
-            for y, col in enumerate(row):
-                if col == 0:
-                    new_child = copy.deepcopy(state)
-                    new_child[x][y] = 2
-                    children.append(new_child)
-
-                    new_child = copy.deepcopy(state)
-                    new_child[x][y] = 4
-                    children.append(new_child)
-        return children
-
-    def generate_direction(self, state: List[List[int]], direction: str) -&gt; List[List[int]]:
-        &#34;&#34;&#34;Generates the state of the grid after players move to given direction
-
-        Args:
-            state (List[List[int]]): Game state to move
-            direction (str): Direction to move to (&#34;left&#34;, &#34;right&#34;, &#34;up&#34;, &#34;down&#34;)
-
-        Returns:
-            List[List[int]]: Game state after moving the tiles to given direction
-        &#34;&#34;&#34;
-        new_state = []
-        rotated_grid = self.rotate_grid(state, direction)
-        for row in rotated_grid:
-            # Create list of all present tiles
-            tiles = []
-            for col in row:
-                if col != 0:
-                    tiles.append(col)
-
-            # Merge same values that are back to back
-            merged_tiles = []
-            if len(tiles) &gt; 0:
-                merged_tiles.append(tiles[0])
-
-            # Flag to prevent merging tiles that have been already merged once
-            allow_merge = True
-            for tile in tiles[1:]:
-                if tile == merged_tiles[len(merged_tiles) - 1] and allow_merge:
-                    merged_tiles[len(merged_tiles) - 1] *= 2
-                    allow_merge = False
-                else:
-                    merged_tiles.append(tile)
-                    allow_merge = True
-
-            # Fill up rest of the row with zeroes
-            while len(merged_tiles) &lt; len(state[0]):
-                merged_tiles.append(0)
-
-            new_state.append(merged_tiles)
-
-        return self.rotate_grid(new_state, direction)
-
-    def rotate_grid(self, state: List[List[int]], direction: str) -&gt; List[List[int]]:
-        &#34;&#34;&#34;Rotates the game state grid to normalize it for generating directions
-
-        Args:
-            state (List[List[int]]): Game state to rotate
-            direction (str): Direction that will be generated out of the rotated state
-
-        Returns:
-            List[List[int]]: Rotated game state grid
-        &#34;&#34;&#34;
-        if direction == &#34;left&#34;:
-            return state
-
-        elif direction == &#34;right&#34;:
-            return [list(reversed(row)) for row in state]
-
-        elif direction == &#34;up&#34;:
-            rotated_state = []
-
-            for i, row in enumerate(state):
-                newrow = []
-                for j, col in enumerate(row):
-                    newrow.append(state[j][i])
-                rotated_state.append(newrow)
-
-            return rotated_state
-
-        elif direction == &#34;down&#34;:
-            rotated_state = []
-
-            for i, row in enumerate(state):
-                newrow = []
-                for j, col in enumerate(row):
-                    newrow.insert(0, state[j][i])
-                rotated_state.insert(0, newrow)
-
-            return rotated_state
-
-    def heuristic(self, state: List[List[int]]) -&gt; float:
-        &#34;&#34;&#34;Heuristic function to evaluate the value of a state that is not an end state
-
-        Args:
-            state (List[List[int]]): _description_
-
-        Returns:
-            float: _description_
-        &#34;&#34;&#34;
-        tile_sum = 0
-        tiles = 0
-        for row in state:
-            for col in row:
-                if col != 0:
-                    tile_sum += col
-                    tiles += 1
-
-        return tile_sum / tiles
-
-    def maximize(self, state: List[List[int]], depth: int):
+    def maximize(self, state: List[List[int]], depth: int, maxdepth, alpha, beta, path):
         &#34;&#34;&#34;Maximizer function for the minmax -algorithm
 
         Args:
             state (List[List[int]]): Game state to maximize
             depth (int): Current depth of search
+            maxdepth(int): The depth to which continue the search
+            alpha(int): Alpha value for alpha-beta pruning
+            beta(int): Beta value for alpha-beta pruning
+            path(str): a string describing the path on a gametree leading to this state
 
         Returns:
-            _type_: _description_
+            dict: The maximized state of the game tree and the path that leads there
         &#34;&#34;&#34;
-        if gamehandler.game_is_over(state):
-            return gamehandler.get_grid_max_value(state)
-        if depth &gt; SEARCH_DEPTH:
-            return self.heuristic(state)
-        v = -HUGE_NUMBER
-        for child in self.generate_children(state, True):
-            v = max(v, self.minimize(child, depth))
-        return v
+        self.known_paths[f&#34;{path}&#34;] = {&#34;board&#34;: state, &#34;path&#34;: path}
+        if board.game_is_over(state) or depth &gt; maxdepth:
+            return {&#34;value&#34;: self.heuristic(state), &#34;path&#34;: path}
 
-    def minimize(self, state: List[List[int]], depth: int):
-        &#34;&#34;&#34;Minimizer functionf or the minmax -algorithm
+        maximized = {&#34;value&#34;: -INFINITY, &#34;path&#34;: path}
+        directions = {&#34;up&#34;: board.move_up, &#34;down&#34;: board.move_down, &#34;left&#34;: board.move_left, &#34;right&#34;: board.move_right}
+        last_best_function = directions.pop(self.last_best)
+        for direction, move in [(self.last_best, last_best_function), *directions.items()]:
+            child, empties = move((state, None))
+
+            if child == state:
+                continue
+
+            candidate = self.minimize(child, empties, depth, maxdepth, alpha, beta, [*path, direction])
+
+            if candidate[&#34;value&#34;] &gt; maximized[&#34;value&#34;]:
+                maximized = candidate
+
+            alpha = max(alpha, maximized[&#34;value&#34;])
+            if alpha &gt;= beta:
+                return maximized
+
+        return maximized
+
+    def minimize(self, state: List[List[int]], empties, depth: int, maxdepth, alpha, beta, path):
+        &#34;&#34;&#34;Minimizer function for the minmax -algorithm
 
         Args:
             state (List[List[int]]): Game state to minimize
             depth (int): Current depth of search
+            maxdepth(int): The depth to which continue the search
+            alpha(int): Alpha value for alpha-beta pruning
+            beta(int): Beta value for alpha-beta pruning
+            path(str): a string describing the path on a gametree leading to this state
 
         Returns:
-            _type_: _description_
+            dict: The maximized state of the game tree and the path that leads there
         &#34;&#34;&#34;
-        if gamehandler.game_is_over(state):
-            return gamehandler.get_grid_max_value(state)
-        if depth &gt; SEARCH_DEPTH:
-            return self.heuristic(state)
-        v = HUGE_NUMBER
-        for child in self.generate_children(state, False):
-            v = max(v, self.maximize(child, depth + 1))
-        return v</code></pre>
+        self.known_paths[f&#34;{path}&#34;] = {&#34;board&#34;: state, &#34;path&#34;: path}
+
+        if board.game_is_over(state) or depth &gt; maxdepth:
+            return {&#34;value&#34;: self.heuristic(state), &#34;path&#34;: path}
+
+        minimized = {&#34;value&#34;: INFINITY, &#34;path&#34;: path}
+
+        # As long as there are empty slots
+        for slot in empties:
+            for i in range(2):
+                child = self.generate_spawn_child(state, slot, (i + 1) * 2)
+                candidate = self.maximize(child, depth + 1, maxdepth, alpha, beta, [*path, f&#34;{slot} -&gt; {(i + 1) * 2}&#34;])
+
+                if candidate[&#34;value&#34;] &lt; minimized[&#34;value&#34;]:
+                    minimized = candidate
+
+                beta = min(beta, minimized[&#34;value&#34;])
+                if alpha &gt;= beta:
+                    return minimized
+
+        # If the board is full but still playable
+        if len(empties) == 0:
+            candidate = self.maximize(state, depth + 1, maxdepth, alpha, beta, path)
+
+            if candidate[&#34;value&#34;] &lt;= minimized[&#34;value&#34;]:
+                minimized = candidate
+
+            beta = min(beta, minimized[&#34;value&#34;])
+            if alpha &gt;= beta:
+                return minimized
+
+        return minimized</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="src.players.minimaxplayer.MiniMaxPlayer.generate_children"><code class="name flex">
-<span>def <span class="ident">generate_children</span></span>(<span>self, state: List[List[int]], is_player_turn: bool) ‑> List[List[List[int]]]</span>
+<dt id="src.players.minimaxplayer.MiniMaxPlayer.generate_spawn_child"><code class="name flex">
+<span>def <span class="ident">generate_spawn_child</span></span>(<span>self, state: List[List[int]], slot: Tuple, value: int) ‑> List[List[int]]</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Generates list of possible next states of the game given a state</p>
+<div class="desc"><p>Generates a child state for given state, representing a possible state created on game's turn</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>state</code></strong> :&ensp;<code>List[List[int]]</code></dt>
-<dd>Game state to generate child states to</dd>
-<dt><strong><code>is_player_turn</code></strong> :&ensp;<code>bool</code></dt>
-<dd>Indicates if it is the player or the games turn to play</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>List[List[List[int]]]</code></dt>
-<dd>List of possible child states</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def generate_children(self, state: List[List[int]], is_player_turn: bool) -&gt; List[List[List[int]]]:
-    &#34;&#34;&#34;Generates list of possible next states of the game given a state
-
-    Args:
-        state (List[List[int]]): Game state to generate child states to
-        is_player_turn (bool): Indicates if it is the player or the games turn to play
-
-    Returns:
-        List[List[List[int]]]: List of possible child states
-    &#34;&#34;&#34;
-
-    if not is_player_turn:
-        return self.generate_spawn_tile(state)
-
-    return [
-        [*self.generate_direction(state, &#34;up&#34;)],
-        [*self.generate_direction(state, &#34;down&#34;)],
-        [*self.generate_direction(state, &#34;left&#34;)],
-        [*self.generate_direction(state, &#34;right&#34;)],
-    ]</code></pre>
-</details>
-</dd>
-<dt id="src.players.minimaxplayer.MiniMaxPlayer.generate_direction"><code class="name flex">
-<span>def <span class="ident">generate_direction</span></span>(<span>self, state: List[List[int]], direction: str) ‑> List[List[int]]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Generates the state of the grid after players move to given direction</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>state</code></strong> :&ensp;<code>List[List[int]]</code></dt>
-<dd>Game state to move</dd>
-<dt><strong><code>direction</code></strong> :&ensp;<code>str</code></dt>
-<dd>Direction to move to ("left", "right", "up", "down")</dd>
+<dd>Game's state</dd>
+<dt><strong><code>slot</code></strong> :&ensp;<code>Tuple</code></dt>
+<dd>X and Y coordinates of the slot to add tile to</dd>
+<dt><strong><code>value</code></strong> :&ensp;<code>int</code></dt>
+<dd>value of the new tile</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>List[List[int]]</code></dt>
-<dd>Game state after moving the tiles to given direction</dd>
+<dd>The game state after spawning the new tile</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def generate_direction(self, state: List[List[int]], direction: str) -&gt; List[List[int]]:
-    &#34;&#34;&#34;Generates the state of the grid after players move to given direction
+<pre><code class="python">def generate_spawn_child(self, state: List[List[int]], slot: Tuple, value: int) -&gt; List[List[int]]:
+    &#34;&#34;&#34;Generates a child state for given state, representing a possible state created on game&#39;s turn
 
     Args:
-        state (List[List[int]]): Game state to move
-        direction (str): Direction to move to (&#34;left&#34;, &#34;right&#34;, &#34;up&#34;, &#34;down&#34;)
+        state (List[List[int]]): Game&#39;s state
+        slot (Tuple): X and Y coordinates of the slot to add tile to
+        value (int): value of the new tile
 
     Returns:
-        List[List[int]]: Game state after moving the tiles to given direction
+        List[List[int]]: The game state after spawning the new tile
     &#34;&#34;&#34;
-    new_state = []
-    rotated_grid = self.rotate_grid(state, direction)
-    for row in rotated_grid:
-        # Create list of all present tiles
-        tiles = []
-        for col in row:
-            if col != 0:
-                tiles.append(col)
-
-        # Merge same values that are back to back
-        merged_tiles = []
-        if len(tiles) &gt; 0:
-            merged_tiles.append(tiles[0])
-
-        # Flag to prevent merging tiles that have been already merged once
-        allow_merge = True
-        for tile in tiles[1:]:
-            if tile == merged_tiles[len(merged_tiles) - 1] and allow_merge:
-                merged_tiles[len(merged_tiles) - 1] *= 2
-                allow_merge = False
-            else:
-                merged_tiles.append(tile)
-                allow_merge = True
-
-        # Fill up rest of the row with zeroes
-        while len(merged_tiles) &lt; len(state[0]):
-            merged_tiles.append(0)
-
-        new_state.append(merged_tiles)
-
-    return self.rotate_grid(new_state, direction)</code></pre>
-</details>
-</dd>
-<dt id="src.players.minimaxplayer.MiniMaxPlayer.generate_spawn_tile"><code class="name flex">
-<span>def <span class="ident">generate_spawn_tile</span></span>(<span>self, state: List[List[int]]) ‑> List[List[List[int]]]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Generates list of child states on computers turn</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>state</code></strong> :&ensp;<code>List[List[int]]</code></dt>
-<dd>Game state to generate children to</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>List[List[List[int]]]</code></dt>
-<dd>List of possible child states</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def generate_spawn_tile(self, state: List[List[int]]) -&gt; List[List[List[int]]]:
-    &#34;&#34;&#34;Generates list of child states on computers turn
-
-    Args:
-        state (List[List[int]]): Game state to generate children to
-
-    Returns:
-        List[List[List[int]]]: List of possible child states
-    &#34;&#34;&#34;
-    children = []
-    for x, row in enumerate(state):
-        for y, col in enumerate(row):
-            if col == 0:
-                new_child = copy.deepcopy(state)
-                new_child[x][y] = 2
-                children.append(new_child)
-
-                new_child = copy.deepcopy(state)
-                new_child[x][y] = 4
-                children.append(new_child)
-    return children</code></pre>
+    new_child = board.copy_grid(state)
+    new_child[slot[0]][slot[1]] = value
+    return new_child</code></pre>
 </details>
 </dd>
 <dt id="src.players.minimaxplayer.MiniMaxPlayer.heuristic"><code class="name flex">
@@ -596,12 +457,12 @@ class MiniMaxPlayer:
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>state</code></strong> :&ensp;<code>List[List[int]]</code></dt>
-<dd><em>description</em></dd>
+<dd>games state</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>float</code></dt>
-<dd><em>description</em></dd>
+<dd>evaluated value of the game</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -611,24 +472,52 @@ class MiniMaxPlayer:
     &#34;&#34;&#34;Heuristic function to evaluate the value of a state that is not an end state
 
     Args:
-        state (List[List[int]]): _description_
+        state (List[List[int]]): games state
 
     Returns:
-        float: _description_
+        float: evaluated value of the game
     &#34;&#34;&#34;
-    tile_sum = 0
+    if board.game_is_over(state):
+        return -999999
+
+    tile_diff = 0
     tiles = 0
+
     for row in state:
+        last_tile = None
         for col in row:
             if col != 0:
-                tile_sum += col
                 tiles += 1
+                tile_diff += 0 if last_tile is None else abs(col - last_tile)
+                last_tile = col
 
-    return tile_sum / tiles</code></pre>
+    for y in range(4):
+        last_tile = None
+        for x in range(4):
+            if state[x][y] != 0:
+                tile_diff += 0 if last_tile is None else abs(state[x][y] - last_tile)
+                last_tile = state[x][y]
+
+    return -tile_diff * tiles</code></pre>
+</details>
+</dd>
+<dt id="src.players.minimaxplayer.MiniMaxPlayer.logwrite"><code class="name flex">
+<span>def <span class="ident">logwrite</span></span>(<span>self, text)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def logwrite(self, text):
+    writepath = Path(__file__).parents[2] / &#34;logs&#34; / self.filename
+    with open(writepath, &#34;a&#34;) as f:
+        f.write(text + &#34;\n&#34;)</code></pre>
 </details>
 </dd>
 <dt id="src.players.minimaxplayer.MiniMaxPlayer.maximize"><code class="name flex">
-<span>def <span class="ident">maximize</span></span>(<span>self, state: List[List[int]], depth: int)</span>
+<span>def <span class="ident">maximize</span></span>(<span>self, state: List[List[int]], depth: int, maxdepth, alpha, beta, path)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Maximizer function for the minmax -algorithm</p>
@@ -639,40 +528,63 @@ class MiniMaxPlayer:
 <dt><strong><code>depth</code></strong> :&ensp;<code>int</code></dt>
 <dd>Current depth of search</dd>
 </dl>
+<p>maxdepth(int): The depth to which continue the search
+alpha(int): Alpha value for alpha-beta pruning
+beta(int): Beta value for alpha-beta pruning
+path(str): a string describing the path on a gametree leading to this state</p>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>_type_</code></dt>
-<dd><em>description</em></dd>
+<dt><code>dict</code></dt>
+<dd>The maximized state of the game tree and the path that leads there</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def maximize(self, state: List[List[int]], depth: int):
+<pre><code class="python">def maximize(self, state: List[List[int]], depth: int, maxdepth, alpha, beta, path):
     &#34;&#34;&#34;Maximizer function for the minmax -algorithm
 
     Args:
         state (List[List[int]]): Game state to maximize
         depth (int): Current depth of search
+        maxdepth(int): The depth to which continue the search
+        alpha(int): Alpha value for alpha-beta pruning
+        beta(int): Beta value for alpha-beta pruning
+        path(str): a string describing the path on a gametree leading to this state
 
     Returns:
-        _type_: _description_
+        dict: The maximized state of the game tree and the path that leads there
     &#34;&#34;&#34;
-    if gamehandler.game_is_over(state):
-        return gamehandler.get_grid_max_value(state)
-    if depth &gt; SEARCH_DEPTH:
-        return self.heuristic(state)
-    v = -HUGE_NUMBER
-    for child in self.generate_children(state, True):
-        v = max(v, self.minimize(child, depth))
-    return v</code></pre>
+    self.known_paths[f&#34;{path}&#34;] = {&#34;board&#34;: state, &#34;path&#34;: path}
+    if board.game_is_over(state) or depth &gt; maxdepth:
+        return {&#34;value&#34;: self.heuristic(state), &#34;path&#34;: path}
+
+    maximized = {&#34;value&#34;: -INFINITY, &#34;path&#34;: path}
+    directions = {&#34;up&#34;: board.move_up, &#34;down&#34;: board.move_down, &#34;left&#34;: board.move_left, &#34;right&#34;: board.move_right}
+    last_best_function = directions.pop(self.last_best)
+    for direction, move in [(self.last_best, last_best_function), *directions.items()]:
+        child, empties = move((state, None))
+
+        if child == state:
+            continue
+
+        candidate = self.minimize(child, empties, depth, maxdepth, alpha, beta, [*path, direction])
+
+        if candidate[&#34;value&#34;] &gt; maximized[&#34;value&#34;]:
+            maximized = candidate
+
+        alpha = max(alpha, maximized[&#34;value&#34;])
+        if alpha &gt;= beta:
+            return maximized
+
+    return maximized</code></pre>
 </details>
 </dd>
 <dt id="src.players.minimaxplayer.MiniMaxPlayer.minimize"><code class="name flex">
-<span>def <span class="ident">minimize</span></span>(<span>self, state: List[List[int]], depth: int)</span>
+<span>def <span class="ident">minimize</span></span>(<span>self, state: List[List[int]], empties, depth: int, maxdepth, alpha, beta, path)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Minimizer functionf or the minmax -algorithm</p>
+<div class="desc"><p>Minimizer function for the minmax -algorithm</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>state</code></strong> :&ensp;<code>List[List[int]]</code></dt>
@@ -680,37 +592,69 @@ class MiniMaxPlayer:
 <dt><strong><code>depth</code></strong> :&ensp;<code>int</code></dt>
 <dd>Current depth of search</dd>
 </dl>
+<p>maxdepth(int): The depth to which continue the search
+alpha(int): Alpha value for alpha-beta pruning
+beta(int): Beta value for alpha-beta pruning
+path(str): a string describing the path on a gametree leading to this state</p>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>_type_</code></dt>
-<dd><em>description</em></dd>
+<dt><code>dict</code></dt>
+<dd>The maximized state of the game tree and the path that leads there</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def minimize(self, state: List[List[int]], depth: int):
-    &#34;&#34;&#34;Minimizer functionf or the minmax -algorithm
+<pre><code class="python">def minimize(self, state: List[List[int]], empties, depth: int, maxdepth, alpha, beta, path):
+    &#34;&#34;&#34;Minimizer function for the minmax -algorithm
 
     Args:
         state (List[List[int]]): Game state to minimize
         depth (int): Current depth of search
+        maxdepth(int): The depth to which continue the search
+        alpha(int): Alpha value for alpha-beta pruning
+        beta(int): Beta value for alpha-beta pruning
+        path(str): a string describing the path on a gametree leading to this state
 
     Returns:
-        _type_: _description_
+        dict: The maximized state of the game tree and the path that leads there
     &#34;&#34;&#34;
-    if gamehandler.game_is_over(state):
-        return gamehandler.get_grid_max_value(state)
-    if depth &gt; SEARCH_DEPTH:
-        return self.heuristic(state)
-    v = HUGE_NUMBER
-    for child in self.generate_children(state, False):
-        v = max(v, self.maximize(child, depth + 1))
-    return v</code></pre>
+    self.known_paths[f&#34;{path}&#34;] = {&#34;board&#34;: state, &#34;path&#34;: path}
+
+    if board.game_is_over(state) or depth &gt; maxdepth:
+        return {&#34;value&#34;: self.heuristic(state), &#34;path&#34;: path}
+
+    minimized = {&#34;value&#34;: INFINITY, &#34;path&#34;: path}
+
+    # As long as there are empty slots
+    for slot in empties:
+        for i in range(2):
+            child = self.generate_spawn_child(state, slot, (i + 1) * 2)
+            candidate = self.maximize(child, depth + 1, maxdepth, alpha, beta, [*path, f&#34;{slot} -&gt; {(i + 1) * 2}&#34;])
+
+            if candidate[&#34;value&#34;] &lt; minimized[&#34;value&#34;]:
+                minimized = candidate
+
+            beta = min(beta, minimized[&#34;value&#34;])
+            if alpha &gt;= beta:
+                return minimized
+
+    # If the board is full but still playable
+    if len(empties) == 0:
+        candidate = self.maximize(state, depth + 1, maxdepth, alpha, beta, path)
+
+        if candidate[&#34;value&#34;] &lt;= minimized[&#34;value&#34;]:
+            minimized = candidate
+
+        beta = min(beta, minimized[&#34;value&#34;])
+        if alpha &gt;= beta:
+            return minimized
+
+    return minimized</code></pre>
 </details>
 </dd>
 <dt id="src.players.minimaxplayer.MiniMaxPlayer.play_round"><code class="name flex">
-<span>def <span class="ident">play_round</span></span>(<span>self, grid: List[List[int]]) ‑> str</span>
+<span>def <span class="ident">play_round</span></span>(<span>self, state: List[List[int]], iterative_deepening=True, id_timelimit=0.3, id_skippedturns=0)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Calculates the next move for given games state</p>
@@ -728,7 +672,7 @@ class MiniMaxPlayer:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def play_round(self, grid: List[List[int]]) -&gt; str:
+<pre><code class="python">def play_round(self, state: List[List[int]], iterative_deepening=True, id_timelimit=0.3, id_skippedturns=0):
     &#34;&#34;&#34;Calculates the next move for given games state
 
     Args:
@@ -736,67 +680,30 @@ class MiniMaxPlayer:
 
     Returns:
         str: Direction to play (&#34;left&#34;, &#34;right&#34;, &#34;up&#34;, &#34;down&#34;)
-    &#34;&#34;&#34;</code></pre>
-</details>
-</dd>
-<dt id="src.players.minimaxplayer.MiniMaxPlayer.rotate_grid"><code class="name flex">
-<span>def <span class="ident">rotate_grid</span></span>(<span>self, state: List[List[int]], direction: str) ‑> List[List[int]]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Rotates the game state grid to normalize it for generating directions</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>state</code></strong> :&ensp;<code>List[List[int]]</code></dt>
-<dd>Game state to rotate</dd>
-<dt><strong><code>direction</code></strong> :&ensp;<code>str</code></dt>
-<dd>Direction that will be generated out of the rotated state</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>List[List[int]]</code></dt>
-<dd>Rotated game state grid</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def rotate_grid(self, state: List[List[int]], direction: str) -&gt; List[List[int]]:
-    &#34;&#34;&#34;Rotates the game state grid to normalize it for generating directions
-
-    Args:
-        state (List[List[int]]): Game state to rotate
-        direction (str): Direction that will be generated out of the rotated state
-
-    Returns:
-        List[List[int]]: Rotated game state grid
     &#34;&#34;&#34;
-    if direction == &#34;left&#34;:
-        return state
+    starttime = time.time()
+    elapsed = 0
+    maxdepth = 2
+    maximized = None
+    while elapsed &lt; id_timelimit:
+        maximized = self.maximize(state, 0, maxdepth, -INFINITY, INFINITY, [&#34;root&#34;])
+        maxdepth += 1
 
-    elif direction == &#34;right&#34;:
-        return [list(reversed(row)) for row in state]
+        self.last_best = maximized[&#34;path&#34;][1]
 
-    elif direction == &#34;up&#34;:
-        rotated_state = []
+        elapsed += time.time() - starttime
+        if self.round_count &lt; id_skippedturns or not iterative_deepening:
+            break
 
-        for i, row in enumerate(state):
-            newrow = []
-            for j, col in enumerate(row):
-                newrow.append(state[j][i])
-            rotated_state.append(newrow)
-
-        return rotated_state
-
-    elif direction == &#34;down&#34;:
-        rotated_state = []
-
-        for i, row in enumerate(state):
-            newrow = []
-            for j, col in enumerate(row):
-                newrow.insert(0, state[j][i])
-            rotated_state.insert(0, newrow)
-
-        return rotated_state</code></pre>
+    self.round_count += 1
+    decision = maximized[&#34;path&#34;][1]
+    self.logwrite(
+        f&#34;Round: {self.round_count} | Move: {decision.ljust(5,&#39; &#39;)} | Time spent: {&#39;%.2f&#39; % elapsed}s | Reached depth: {maxdepth} | Max tile: {board.get_grid_max_value(state)} | state: {state}&#34;
+    )
+    print(
+        f&#34;Round: {self.round_count} | Move: {decision.ljust(5,&#39; &#39;)} | Time spent: {&#39;%.2f&#39; % elapsed}s | Reached depth: {maxdepth}&#34;
+    )
+    return decision</code></pre>
 </details>
 </dd>
 </dl>
@@ -819,15 +726,13 @@ class MiniMaxPlayer:
 <ul>
 <li>
 <h4><code><a title="src.players.minimaxplayer.MiniMaxPlayer" href="#src.players.minimaxplayer.MiniMaxPlayer">MiniMaxPlayer</a></code></h4>
-<ul class="two-column">
-<li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.generate_children" href="#src.players.minimaxplayer.MiniMaxPlayer.generate_children">generate_children</a></code></li>
-<li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.generate_direction" href="#src.players.minimaxplayer.MiniMaxPlayer.generate_direction">generate_direction</a></code></li>
-<li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.generate_spawn_tile" href="#src.players.minimaxplayer.MiniMaxPlayer.generate_spawn_tile">generate_spawn_tile</a></code></li>
+<ul class="">
+<li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.generate_spawn_child" href="#src.players.minimaxplayer.MiniMaxPlayer.generate_spawn_child">generate_spawn_child</a></code></li>
 <li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.heuristic" href="#src.players.minimaxplayer.MiniMaxPlayer.heuristic">heuristic</a></code></li>
+<li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.logwrite" href="#src.players.minimaxplayer.MiniMaxPlayer.logwrite">logwrite</a></code></li>
 <li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.maximize" href="#src.players.minimaxplayer.MiniMaxPlayer.maximize">maximize</a></code></li>
 <li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.minimize" href="#src.players.minimaxplayer.MiniMaxPlayer.minimize">minimize</a></code></li>
 <li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.play_round" href="#src.players.minimaxplayer.MiniMaxPlayer.play_round">play_round</a></code></li>
-<li><code><a title="src.players.minimaxplayer.MiniMaxPlayer.rotate_grid" href="#src.players.minimaxplayer.MiniMaxPlayer.rotate_grid">rotate_grid</a></code></li>
 </ul>
 </li>
 </ul>
