@@ -30,7 +30,7 @@ The branching factor of the game tree varies based on whose moves the layer of n
 
 ### Time and Space Complexity
 
-The worst case time complexity of the minimax algorithm is O(m^d) where m is the available moves (branching factor) on each turn and d is the used search depth. The m is determined by the brancing factor explained above. Due to iterative deepening the search depth varies from 2 full-turns (= 4 half-turns) up. A new level is calculated if the time calculating the ongoing round has not passed 0.3 seconds when the maximizer returns the search result. The big-o complexity is not affected by the alpha beta pruning since in the worst case all nodes will be explored. The worst case space complexity for the algorithm is O(MD)
+The worst case time complexity of the minimax algorithm is O(m^d) where m is the available moves (branching factor) on each turn and d is the used search depth. The m is determined by the brancing factor explained above. Due to iterative deepening the search depth varies from 2 full-turns (= 4 half-turns) up. A new level is calculated if the time calculating the ongoing round has not passed 0.3 seconds when the maximizer returns the search result. The big-o complexity is not affected by the alpha beta pruning since in the worst case all nodes will be explored. The worst case space complexity for the algorithm is O(MD). In the testing document I present findings on the increases in calculation time in relation to increased search depth.
 
 ### Evaluation Heuristic
 
